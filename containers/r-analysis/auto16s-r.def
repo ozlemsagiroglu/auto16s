@@ -1,0 +1,16 @@
+# Apptainer/Singularity definition: builds the R image without Docker.
+#   cd containers/r-analysis && apptainer build auto16s-r.sif auto16s-r.def
+# Only needed offline; otherwise the pipeline pulls ghcr.io/<owner>/auto16s-r directly.
+Bootstrap: docker
+From: bioconductor/bioconductor_docker:RELEASE_3_22
+
+%files
+    install_r_packages.R /opt/install_r_packages.R
+
+%post
+    apt-get update && apt-get install -y --no-install-recommends procps
+    rm -rf /var/lib/apt/lists/*
+    Rscript /opt/install_r_packages.R
+
+%labels
+    org.opencontainers.image.source https://github.com/ozlemsagiroglu/auto16s

@@ -1,0 +1,6 @@
+work/
+.nextflow*
+results/
+*.sif
+tests/data_spacer/
+tests/data_noprimer/

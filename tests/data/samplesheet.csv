@@ -1,0 +1,9 @@
+sample,fastq_1,fastq_2,group
+S01,S01_R1.fastq.gz,S01_R2.fastq.gz,control
+S02,S02_R1.fastq.gz,S02_R2.fastq.gz,control
+S03,S03_R1.fastq.gz,S03_R2.fastq.gz,control
+S04,S04_R1.fastq.gz,S04_R2.fastq.gz,control
+S05,S05_R1.fastq.gz,S05_R2.fastq.gz,treatment
+S06,S06_R1.fastq.gz,S06_R2.fastq.gz,treatment
+S07,S07_R1.fastq.gz,S07_R2.fastq.gz,treatment
+S08,S08_R1.fastq.gz,S08_R2.fastq.gz,treatment

@@ -1,0 +1,53 @@
+title: "16S rRNA amplicon analysis"
+subtitle: "FastQC · DADA2 · SILVA · phyloseq · vegan · MaAsLin2"
+intro_text: "Read QC, ASV inference and the main statistical results of the run. Start with 'DADA2 summary and warnings'. All figures are also in the output folders as PNG (300 dpi) and PDF."
+
+run_modules:
+  - fastqc
+  - custom_content
+
+# Replace MultiQC's default name cleaning (it cuts e.g. '_qual' from 'dada2_quality_truncation')
+fn_clean_exts:
+  - ".png"
+  - "_mqc"
+  - ".gz"
+  - ".fastq"
+  - "_fastqc"
+  - ".zip"
+
+custom_data:
+  primer_detection:         { section_name: "Primer detection" }
+  dada2_quality_truncation: { section_name: "DADA2: read quality and truncation" }
+  dada2_read_tracking_plot: { section_name: "DADA2: reads retained per step" }
+  rarefaction_curves:       { section_name: "Rarefaction curves" }
+  sample_depths_plot:       { section_name: "Reads per sample" }
+  genus_barplot_samples:    { section_name: "Composition: genera per sample" }
+  family_barplot_groups:    { section_name: "Composition: families per group" }
+  genus_heatmap:            { section_name: "Composition: genus heatmap" }
+  alpha_diversity:          { section_name: "Alpha diversity" }
+  pcoa_bray:                { section_name: "Beta diversity: PCoA (Bray-Curtis)" }
+  maaslin2_coefficients:    { section_name: "Differential abundance: significant genera" }
+  maaslin2_boxplots:        { section_name: "Differential abundance: relative abundance" }
+
+report_section_order:
+  dada2_truncation:         { order: 1000 }
+  primer_detection:         { order: 995 }
+  dada2_quality_truncation: { order: 990 }
+  dada2_read_tracking:      { order: 970 }
+  dada2_read_tracking_plot: { order: 965 }
+  fastqc:                   { order: 960 }
+  taxonomic_filtering:      { order: 950 }
+  sample_depths:            { order: 940 }
+  sample_depths_plot:       { order: 935 }
+  rarefaction_curves:       { order: 930 }
+  genus_barplot_samples:    { order: 900 }
+  family_barplot_groups:    { order: 890 }
+  genus_heatmap:            { order: 880 }
+  alpha_diversity:          { order: 800 }
+  alpha_tests:              { order: 790 }
+  pcoa_bray:                { order: 700 }
+  beta_tests:               { order: 690 }
+  permanova_pairwise:       { order: 680 }
+  maaslin2:                 { order: 600 }
+  maaslin2_coefficients:    { order: 590 }
+  maaslin2_boxplots:        { order: 580 }

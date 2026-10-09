@@ -1,0 +1,3 @@
+sample,fastq_1,fastq_2,group,age
+Patient01,/path/to/raw/Patient01_R1.fastq.gz,/path/to/raw/Patient01_R2.fastq.gz,control,34
+Patient02,/path/to/raw/Patient02_R1.fastq.gz,/path/to/raw/Patient02_R2.fastq.gz,case,41

@@ -1,0 +1,44 @@
+name: R image
+
+# Builds containers/r-analysis and publishes it as ghcr.io/<owner>/auto16s-r:<pipeline version> and :latest.
+# The pipeline pulls this image by default (params.r_container), so users never have to build it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "containers/r-analysis/**"
+      - ".github/workflows/r-image.yml"
+      - "nextflow.config"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image name and version
+        id: meta
+        run: |
+          echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/auto16s-r" >> "$GITHUB_OUTPUT"
+          echo "version=$(grep -oP "^\s*version\s*=\s*'\K[^']+" nextflow.config | head -1)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: containers/r-analysis
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.image }}:latest

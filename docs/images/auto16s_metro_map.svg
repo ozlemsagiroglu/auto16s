@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2360" height="800" viewBox="0 0 2360 800">
+<rect width="2360" height="800" fill="white"/>
+<text x="60" y="72" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="36" font-weight="bold" text-anchor="start" fill="#111" >auto16s</text>
+<text x="60" y="104" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="normal" text-anchor="start" fill="#555" >Paired-end 16S rRNA amplicon reads  →  ASVs  →  taxonomy  →  diversity and differential abundance  →  one report</text>
+<rect x="745" y="190" width="550" height="290" rx="20" fill="#009E73" fill-opacity="0.06" stroke="#009E73" stroke-width="2" stroke-dasharray="7 6"/>
+<text x="765" y="220" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="18" font-weight="bold" text-anchor="start" fill="#009E73" >DADA2</text>
+<path d="M 280,340 L 280,640 L 2290,640" fill="none" stroke="#8C8C8C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 1020,340 L 1020,640" fill="none" stroke="#8C8C8C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 10"/>
+<path d="M 2000,178 L 2290,178 L 2290,640" fill="none" stroke="#8C8C8C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 10"/>
+<path d="M 2000,268 L 2290,268" fill="none" stroke="#8C8C8C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 10"/>
+<path d="M 2170,470 L 2290,470" fill="none" stroke="#8C8C8C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 10"/>
+<path d="M 110,340 L 730,340" fill="none" stroke="#0072B2" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 730,340 L 1295,340" fill="none" stroke="#009E73" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 1295,340 L 1680,340" fill="none" stroke="#E69F00" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 1680,340 L 1800,178 L 2000,178" fill="none" stroke="#E69F00" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 1680,340 L 1800,268 L 2000,268" fill="none" stroke="#D55E00" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 1680,340 L 1800,470 L 2170,470" fill="none" stroke="#CC79A7" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 91,314 h 27 l 11,11 v 41 h -38 z" fill="white" stroke="#0072B2" stroke-width="3"/>
+<path d="M 118,314 v 11 h 11" fill="none" stroke="#0072B2" stroke-width="3"/>
+<text x="110" y="347" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="11" font-weight="bold" text-anchor="middle" fill="#0072B2" >fastq</text>
+<text x="110" y="386" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Raw reads</text>
+<text x="110" y="408" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >R1 / R2</text>
+<text x="110" y="427" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >+ samplesheet</text>
+<circle cx="280" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="280" y="287" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >FastQC</text>
+<text x="280" y="310" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >read quality</text>
+<circle cx="460" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="460" y="386" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Primer detection</text>
+<text x="460" y="408" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >library of common</text>
+<text x="460" y="427" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >16S primers</text>
+<circle cx="640" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="640" y="268" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Primer removal</text>
+<text x="640" y="291" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >per read; spacers and</text>
+<text x="640" y="310" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >reverse-oriented pairs</text>
+<circle cx="840" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="840" y="386" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Filter + truncate</text>
+<text x="840" y="408" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >truncLen (automatic)</text>
+<text x="840" y="427" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >maxEE = 2</text>
+<circle cx="1020" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="1020" y="268" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Error model + denoise</text>
+<text x="1020" y="291" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >learnErrors, dada</text>
+<text x="1020" y="310" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >R1 and R2 separately</text>
+<circle cx="1200" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="1200" y="386" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Merge + chimeras</text>
+<text x="1200" y="408" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >mergePairs</text>
+<text x="1200" y="427" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >removeBimeraDenovo</text>
+<circle cx="1390" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="1390" y="268" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Taxonomy</text>
+<text x="1390" y="291" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >SILVA 138.1</text>
+<text x="1390" y="310" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >assignTaxonomy</text>
+<circle cx="1570" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="1570" y="386" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >phyloseq</text>
+<text x="1570" y="408" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >drop Eukaryota, chloroplasts,</text>
+<text x="1570" y="427" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >mitochondria</text>
+<circle cx="1880" cy="178" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="1880" y="106" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Composition</text>
+<text x="1880" y="129" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >bar plots (phylum, family, genus),</text>
+<text x="1880" y="148" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >genus heatmap (all reads)</text>
+<circle cx="1880" cy="268" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="1880" y="314" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Differential abundance</text>
+<text x="1880" y="336" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >MaAsLin2, genus level (all reads)</text>
+<circle cx="1850" cy="470" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="1850" y="516" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Rarefaction</text>
+<text x="1850" y="538" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >automatic depth</text>
+<circle cx="2010" cy="470" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="2010" y="516" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Alpha diversity</text>
+<text x="2010" y="538" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >Observed, Shannon,</text>
+<text x="2010" y="557" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >Simpson + tests</text>
+<circle cx="2170" cy="470" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="2170" y="516" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Beta diversity</text>
+<text x="2170" y="538" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >Bray-Curtis PCoA,</text>
+<text x="2170" y="557" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >PERMANOVA, betadisper</text>
+<rect x="2252" y="614" width="76" height="52" rx="11" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="2290" y="646" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#222" >HTML</text>
+<text x="2240" y="698" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="end" fill="#222" >MultiQC report</text>
+<text x="2240" y="719" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="end" fill="#555" >QC, warnings, all figures and statistics</text>
+<path d="M 60,755 L 102,755" fill="none" stroke="#0072B2" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="116" y="760" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="15" font-weight="normal" text-anchor="start" fill="#333" >Read QC, primers</text>
+<path d="M 309.2,755 L 351.2,755" fill="none" stroke="#009E73" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="365.2" y="760" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="15" font-weight="normal" text-anchor="start" fill="#333" >ASV inference</text>
+<path d="M 530.8,755 L 572.8,755" fill="none" stroke="#E69F00" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="586.8" y="760" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="15" font-weight="normal" text-anchor="start" fill="#333" >Taxonomy, phyloseq, composition</text>
+<path d="M 918.0,755 L 960.0,755" fill="none" stroke="#D55E00" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="974.0" y="760" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="15" font-weight="normal" text-anchor="start" fill="#333" >Differential abundance</text>
+<path d="M 1222.4,755 L 1264.4,755" fill="none" stroke="#CC79A7" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1278.4" y="760" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="15" font-weight="normal" text-anchor="start" fill="#333" >Diversity (rarefied)</text>
+<path d="M 1508.4,755 L 1550.4,755" fill="none" stroke="#8C8C8C" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1564.4" y="760" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="15" font-weight="normal" text-anchor="start" fill="#333" >Report</text>
+</svg>

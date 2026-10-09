@@ -1,0 +1,82 @@
+name: CI
+
+# Runs the test profile on real reads with each software stack, on every push and pull request.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-docker:
+    name: test (docker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: nf-core/setup-nextflow@v2
+
+      - name: Build the R image from this commit
+        run: docker build -t auto16s-r:ci containers/r-analysis
+
+      - name: Run the test profile
+        run: nextflow run . -profile test,docker --r_container auto16s-r:ci --outdir results
+
+      - name: Check the main outputs
+        run: |
+          for f in multiqc/multiqc_report.html phyloseq/phyloseq_object.rds phyloseq/asv_table.tsv \
+                   primers/primers.tsv alpha_diversity/alpha_diversity.tsv beta_diversity/beta_diversity_tests.tsv \
+                   maaslin2/maaslin2_all_results.csv; do
+            test -s "results/$f" || { echo "missing: $f"; exit 1; }
+          done
+          grep -qP "^status\tdetected" results/primers/primers.tsv
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-docker
+          path: |
+            results/multiqc/multiqc_report.html
+            results/pipeline_info/
+            .nextflow.log
+
+  test-conda:
+    name: test (conda, no containers)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: nf-core/setup-nextflow@v2
+
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge,bioconda
+          channel-priority: strict
+          auto-activate-base: true
+
+      - name: Run the test profile
+        run: nextflow run . -profile test,conda --outdir results
+
+      - name: Check the main outputs
+        run: test -s results/multiqc/multiqc_report.html && test -s results/phyloseq/phyloseq_object.rds
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-conda
+          path: |
+            results/multiqc/multiqc_report.html
+            .nextflow.log
