@@ -7,7 +7,7 @@
  *   DADA2: truncLen (auto) + maxEE -> learnErrors -> dada -> mergePairs -> chimeras
  *   SILVA taxonomy (assignTaxonomy)
  *   phyloseq: remove unassigned / Eukaryota / chloroplast / mitochondria; rarefy for alpha/beta
- *   composition (unrarefied) | alpha + beta diversity (rarefied) | MaAsLin2 genus level (unrarefied)
+ *   composition (unrarefied) | alpha + beta diversity (rarefied) | MaAsLin3 genus level (unrarefied)
  *   MultiQC: QC + key figures and test results in one report
  */
 nextflow.enable.dsl = 2
@@ -22,7 +22,7 @@ include { PHYLOSEQ_BUILD  } from './modules/local/phyloseq_build'
 include { COMPOSITION     } from './modules/local/composition'
 include { ALPHA_DIVERSITY } from './modules/local/alpha_diversity'
 include { BETA_DIVERSITY  } from './modules/local/beta_diversity'
-include { MAASLIN2        } from './modules/local/maaslin2'
+include { MAASLIN3        } from './modules/local/maaslin3'
 include { MULTIQC         } from './modules/local/multiqc'
 
 def helpMessage() {
@@ -40,7 +40,7 @@ def helpMessage() {
       --group_col        Samplesheet column with the groups to compare   [${params.group_col}]
       --silva_db         DADA2 SILVA training set (local path or URL)     [SILVA 138.1, Zenodo]
       --outdir           Output folder                                    [${params.outdir}]
-      --maaslin_reference  Reference group for MaAsLin2                   [alphabetically first]
+      --maaslin_reference  Reference group for MaAsLin3                   [alphabetically first]
       --fw_primer / --rv_primer   Primer sequences, only if yours are not detected automatically
       --trunc_len_f / --trunc_len_r   Override automatic truncLen
       --rarefy_depth     Override automatic rarefaction depth
@@ -209,14 +209,14 @@ workflow {
         COMPOSITION(PHYLOSEQ_BUILD.out.ps)
         ALPHA_DIVERSITY(PHYLOSEQ_BUILD.out.ps_rare)
         BETA_DIVERSITY(PHYLOSEQ_BUILD.out.ps_rare)
-        MAASLIN2(PHYLOSEQ_BUILD.out.ps)
+        MAASLIN3(PHYLOSEQ_BUILD.out.ps)
 
         // one report
         ch_mqc = FASTQC_RAW.out.zip.map { _meta, z -> z }.flatten()
             .mix(FASTQC_FILTERED.out.zip.map { _meta, z -> z }.flatten())
             .mix(PRIMER_DETECT.out.mqc.flatten(), DADA2.out.mqc.flatten(), PHYLOSEQ_BUILD.out.mqc.flatten(),
                  COMPOSITION.out.mqc.flatten(), ALPHA_DIVERSITY.out.mqc.flatten(), BETA_DIVERSITY.out.mqc.flatten(),
-                 MAASLIN2.out.mqc.flatten())
+                 MAASLIN3.out.mqc.flatten())
             .collect()
         MULTIQC(ch_mqc, file("${projectDir}/assets/multiqc_config.yml", checkIfExists: true))
     }

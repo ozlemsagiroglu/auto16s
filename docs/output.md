@@ -40,7 +40,7 @@ All paths are relative to `--outdir` (default `results/`). Figures are saved as 
 
 | File | Content |
 |---|---|
-| `phyloseq_object.rds` | phyloseq object: all reads after taxonomic filtering, sample metadata from the samplesheet. Used for composition and MaAsLin2 |
+| `phyloseq_object.rds` | phyloseq object: all reads after taxonomic filtering, sample metadata from the samplesheet. Used for composition and MaAsLin 3 |
 | `phyloseq_object_rarefied.rds` | The same, rarefied. Used for alpha and beta diversity |
 | `asv_table.tsv` | ASV × sample read counts (all reads) |
 | `asv_table_rarefied.tsv` | ASV × sample read counts (rarefied) |
@@ -83,16 +83,17 @@ All paths are relative to `--outdir` (default `results/`). Figures are saved as 
 | `pcoa_bray.png` | PCoA with 95 % ellipses (≥ 4 samples per group) and group centroids |
 | `betadisper_bray.png` | Distances to centroid per group |
 
-## `maaslin2/` (all reads, genus level)
+## `maaslin3/` (all reads, genus level)
 
 | File | Content |
 |---|---|
-| `maaslin2_all_results.csv` | Every tested genus: comparison, coefficient, standard error, p, q, number of samples / non-zero samples |
-| `maaslin2_significant.csv` | Genera with q < 0.05 |
-| `maaslin2_volcano.png` | Coefficient vs. −log10(q); significant genera labelled |
-| `maaslin2_coefficients.png` | Coefficients ± SE of the significant genera (positive = higher than the reference group) |
-| `maaslin2_boxplots.png` | Relative abundance of up to 12 significant genera with the lowest q |
-| `maaslin2_output/` | Unmodified MaAsLin2 output |
+| `maaslin3_all_results.csv` | Every tested genus, once per model: `model` (`abundance` or `prevalence`), comparison, coefficient, standard error, p, q (`qval_individual`), `qval_joint` (either model), number of samples / non-zero samples, `error` (model did not fit) |
+| `maaslin3_significant.csv` | Rows with q < 0.05 and no fitting error |
+| `maaslin3_volcano.png` | Coefficient vs. −log10(q), one panel per model; significant genera labelled |
+| `maaslin3_coefficients.png` | Coefficients ± SE of the significant genera, per model (positive = higher than the reference group) |
+| `maaslin3_abundance_boxplots.png` | Abundance hits: relative abundance in the samples where the genus was found (up to 12 genera) |
+| `maaslin3_prevalence_bars.png` | Prevalence hits: share of samples per group in which the genus was found (up to 12 genera) |
+| `maaslin3_output/` | Unmodified MaAsLin 3 output |
 
 Genera without a SILVA genus assignment are named after the nearest assigned rank, e.g. `Lachnospiraceae (unclassified)`; the column `resolved` is `FALSE` for them. Do not report them as named genera.
 

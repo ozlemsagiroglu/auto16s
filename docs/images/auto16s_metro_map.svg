@@ -63,7 +63,8 @@
 <text x="1880" y="148" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >genus heatmap (all reads)</text>
 <circle cx="1880" cy="268" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
 <text x="1880" y="314" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Differential abundance</text>
-<text x="1880" y="336" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >MaAsLin2, genus level (all reads)</text>
+<text x="1880" y="336" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >MaAsLin 3: abundance + prevalence,</text>
+<text x="1880" y="355" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >genus level (all reads)</text>
 <circle cx="1850" cy="470" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
 <text x="1850" y="516" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Rarefaction</text>
 <text x="1850" y="538" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >automatic depth</text>

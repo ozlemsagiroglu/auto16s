@@ -1,4 +1,4 @@
-# Conda env for phyloseq, vegan, MaAsLin2, ggplot2 steps (used with -profile conda).
+# Conda env for phyloseq, vegan, MaAsLin3, ggplot2 steps (used with -profile conda).
 name: auto16s-r
 channels:
   - conda-forge
@@ -6,7 +6,7 @@ channels:
 dependencies:
   - r-base=4.5
   - bioconductor-phyloseq
-  - bioconductor-maaslin2
+  - bioconductor-maaslin3
   - r-vegan>=2.6
   - r-ggplot2>=3.5
   - r-scales

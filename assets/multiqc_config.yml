@@ -1,5 +1,5 @@
 title: "16S rRNA amplicon analysis"
-subtitle: "FastQC · DADA2 · SILVA · phyloseq · vegan · MaAsLin2"
+subtitle: "FastQC · DADA2 · SILVA · phyloseq · vegan · MaAsLin3"
 intro_text: "Read QC, ASV inference and the main statistical results of the run. Start with 'DADA2 summary and warnings'. All figures are also in the output folders as PNG (300 dpi) and PDF."
 
 run_modules:
@@ -40,8 +40,9 @@ custom_data:
   genus_heatmap:            { section_name: "Composition: genus heatmap" }
   alpha_diversity:          { section_name: "Alpha diversity" }
   pcoa_bray:                { section_name: "Beta diversity: PCoA (Bray-Curtis)" }
-  maaslin2_coefficients:    { section_name: "Differential abundance: significant genera" }
-  maaslin2_boxplots:        { section_name: "Differential abundance: relative abundance" }
+  maaslin3_coefficients:        { section_name: "Differential abundance: significant genera" }
+  maaslin3_abundance_boxplots:  { section_name: "Differential abundance: abundance hits" }
+  maaslin3_prevalence_bars:     { section_name: "Differential abundance: prevalence hits" }
 
 report_section_order:
   dada2_truncation:         { order: 1000 }
@@ -64,6 +65,7 @@ report_section_order:
   pcoa_bray:                { order: 700 }
   beta_tests:               { order: 690 }
   permanova_pairwise:       { order: 680 }
-  maaslin2:                 { order: 600 }
-  maaslin2_coefficients:    { order: 590 }
-  maaslin2_boxplots:        { order: 580 }
+  maaslin3:                     { order: 600 }
+  maaslin3_coefficients:        { order: 590 }
+  maaslin3_abundance_boxplots:  { order: 580 }
+  maaslin3_prevalence_bars:     { order: 570 }

@@ -50,7 +50,7 @@ The only required input is a samplesheet.
 7. **Composition**: phylum, family and genus bar plots per sample and per group, plus a genus heatmap (all reads).
 8. **Alpha diversity**: Observed, Shannon and Simpson, with Wilcoxon or Kruskal-Wallis tests (rarefied).
 9. **Beta diversity**: Bray-Curtis PCoA, PERMANOVA, betadisper and pairwise PERMANOVA ([vegan](https://github.com/vegandevs/vegan); rarefied).
-10. **Differential abundance** at genus level ([MaAsLin2](https://huttenhower.sph.harvard.edu/maaslin/); all reads).
+10. **Differential abundance and prevalence** at genus level ([MaAsLin 3](https://huttenhower.sph.harvard.edu/maaslin3/); all reads).
 11. **Report** ([MultiQC](https://multiqc.info/)): QC, warnings, all key figures and test results in one HTML file.
 
 ## Quick start
@@ -77,7 +77,7 @@ The only required input is a samplesheet.
 
 5. Open `results/multiqc/multiqc_report.html`. Read the **"DADA2 summary and warnings"** table first.
 
-Add `-resume` to rerun after a change; finished steps are reused. Add `-r v0.3.0` to run a fixed release.
+Add `-resume` to rerun after a change; finished steps are reused. Add `-r v0.4.0` to run a fixed release.
 
 ### Software stacks: Docker is not required
 
@@ -89,14 +89,14 @@ All tools come either from containers or from Conda. Choose the profile that mat
 | `singularity` / `apptainer` | Singularity or Apptainer | **No Docker needed.** Usual choice on HPC clusters; the same images are pulled and converted automatically |
 | `conda` | Conda / Mamba / Miniforge | **No containers at all.** Environments are created on the first run (this takes a while once) |
 
-The tools of the R analysis steps (phyloseq, vegan, MaAsLin2, ggplot2) are in the image `ghcr.io/ozlemsagiroglu/auto16s-r`, built from [`containers/r-analysis`](containers/r-analysis) and published automatically. Nothing has to be built by hand. For offline clusters, the image can be built without Docker:
+The tools of the R analysis steps (phyloseq, vegan, MaAsLin 3, ggplot2) are in the image `ghcr.io/ozlemsagiroglu/auto16s-r`, built from [`containers/r-analysis`](containers/r-analysis) and published automatically. Nothing has to be built by hand. For offline clusters, the image can be built without Docker:
 
 ```bash
 cd containers/r-analysis && apptainer build auto16s-r.sif auto16s-r.def
 nextflow run ozlemsagiroglu/auto16s -profile singularity --r_container $PWD/auto16s-r.sif --input samplesheet.csv
 ```
 
-**Without any container or Conda**, the pipeline also runs on a machine where FastQC, MultiQC and R are installed. It needs R ≥ 4.3 with dada2, phyloseq, vegan, MaAsLin2 and ggplot2; the R packages can be installed with `Rscript containers/r-analysis/install_r_packages.R` (plus `BiocManager::install("dada2")`). Then run without `-profile`.
+**Without any container or Conda**, the pipeline also runs on a machine where FastQC, MultiQC and R are installed. It needs R ≥ 4.4 with dada2, phyloseq, vegan, maaslin3 and ggplot2; the R packages can be installed with `Rscript containers/r-analysis/install_r_packages.R` (plus `BiocManager::install("dada2")`). Then run without `-profile`.
 
 ## Input
 
@@ -182,7 +182,7 @@ It warns about groups with fewer than 3 samples, and prints the number of sample
 |---|---|---|
 | `--outdir` | `results` | Output folder |
 | `--group_col` | `group` | Samplesheet column with the groups |
-| `--maaslin_reference` | alphabetically first group | Reference group for MaAsLin2 coefficients |
+| `--maaslin_reference` | alphabetically first group | Reference group for MaAsLin 3 coefficients |
 | `--silva_db` | SILVA 138.1 training set, downloaded from Zenodo | Local copy, to avoid downloading in every new run |
 | `--fw_primer`, `--rv_primer` | detected | Primer sequences (5'→3', IUPAC), only if your primers are not in the library |
 | `--trunc_len_f`, `--trunc_len_r` | automatic | Fixed truncation lengths |
@@ -203,8 +203,8 @@ It warns about groups with fewer than 3 samples, and prints the number of sample
 | Taxonomy | `assignTaxonomy` `minBoot` | 50 |
 | Rarefaction | depth, seed | automatic (see below), 711 |
 | PERMANOVA / betadisper | permutations | 999 |
-| MaAsLin2 | model, normalisation, transform | LM, TSS, LOG |
-| | `min_prevalence`, significance | 0.1, q < 0.05 (Benjamini-Hochberg) |
+| MaAsLin 3 | models, normalisation, transform | abundance (linear) + prevalence (logistic), TSS, LOG |
+| | `min_prevalence`, significance | 0.1, q < 0.05 (`qval_individual`, Benjamini-Hochberg) |
 | Bar plots | taxa shown | top 12 by mean relative abundance + "Other" |
 
 ## What the pipeline decides from the data
@@ -232,7 +232,7 @@ Step 3 matters because a too-short truncation is the most common reason why read
 
 ### Rarefaction depth
 
-Rarefaction is used for alpha and beta diversity only. The depth is the smallest depth among samples with at least 1,000 reads and at least 10 % of the median depth. One failed sample therefore cannot force all others down to a few hundred reads. Samples below the depth are left out of alpha and beta diversity and listed in the report. Composition and MaAsLin2 use all samples and all reads.
+Rarefaction is used for alpha and beta diversity only. The depth is the smallest depth among samples with at least 1,000 reads and at least 10 % of the median depth. One failed sample therefore cannot force all others down to a few hundred reads. Samples below the depth are left out of alpha and beta diversity and listed in the report. Composition and MaAsLin 3 use all samples and all reads.
 
 ## Quality filtering
 
@@ -267,7 +267,7 @@ All results are in `--outdir`. Besides the figures, every number behind a figure
 | `composition/` | Counts and relative abundances per phylum, family and genus; bar plots; genus heatmap |
 | `alpha_diversity/` | Values per sample, tests, figure |
 | `beta_diversity/` | Bray-Curtis distance matrix, PCoA coordinates, PERMANOVA, betadisper, interpretation, figures |
-| `maaslin2/` | All results and significant genera (CSV), volcano, coefficient plot, boxplots, raw MaAsLin2 output |
+| `maaslin3/` | All results and significant genera (CSV), volcano, coefficient plot, abundance and prevalence plots, raw MaAsLin 3 output |
 | `primers/` | Detected primers, detection plot, per-sample primer statistics |
 | `dada2/` | Summary and warnings, read tracking, truncation, error models, ASV lengths, sequence table |
 | `taxonomy/` | SILVA assignment per ASV sequence |
@@ -295,9 +295,11 @@ genus <- read.delim("results/composition/genus_relative_abundance.tsv", row.name
 |---|---|---|
 | Alpha diversity | rarefied | 2 groups: Wilcoxon rank-sum. More than 2: Kruskal-Wallis and pairwise Wilcoxon, Benjamini-Hochberg |
 | Beta diversity | rarefied | Bray-Curtis; PERMANOVA (`adonis2`) and `betadisper`. More than 2 groups: pairwise PERMANOVA, Benjamini-Hochberg |
-| Differential abundance | all reads, genus level | MaAsLin2 (LM, TSS, LOG), Benjamini-Hochberg q-values |
+| Differential abundance and prevalence | all reads, genus level | MaAsLin 3 (TSS, LOG; abundance and prevalence models), Benjamini-Hochberg q-values |
 
 PERMANOVA cannot tell a shift in composition from a difference in within-group spread. The pipeline therefore reads it together with betadisper and writes the interpretation into the report. Rarefying for alpha and beta diversity, but not for differential abundance, follows current recommendations (Schloss 2024).
+
+**Why MaAsLin 3 reports two kinds of results.** A genus can differ between groups in two ways: it is present in fewer samples of one group (*prevalence*), or it is present everywhere but less abundant (*abundance*). Older methods, including MaAsLin2, mix the two, because absent genera enter the model as zeros. MaAsLin 3 tests them separately: the abundance model uses only the samples in which the genus was found, the prevalence model only whether it was found. Every significant result is therefore labelled `abundance` or `prevalence`. Following the MaAsLin 3 defaults, abundance coefficients are tested against the median coefficient of all genera rather than against zero, which corrects for the compositional nature of relative abundances.
 
 ## Figures
 
@@ -308,7 +310,7 @@ All figures are made with ggplot2. Colours are fixed, so a group or a taxon look
 | Groups | Okabe-Ito palette (colour-blind safe), in alphabetical order of group names |
 | Taxa in bar plots | 20 distinct colours by abundance rank; "Other" in grey |
 | Heatmap | viridis, log10 relative abundance |
-| MaAsLin2 | orange = higher, blue = lower than the reference group |
+| MaAsLin 3 | orange = higher, blue = lower than the reference group |
 
 ## Reading the report
 
@@ -345,7 +347,7 @@ The workflow is deliberately fixed and assumes:
 - **No negative controls.** If extraction or PCR blanks were sequenced, contaminant removal (e.g. [decontam](https://github.com/benjjneb/decontam)) is standard and is not included.
 - **No phylogenetic tree,** so UniFrac and Faith's PD are not computed.
 - **A comparison between groups.** Covariates and paired or repeated-measures designs are not modelled; use the phyloseq objects in R for those.
-- **One differential abundance method.** Differential abundance methods can give different results on the same data (Nearing et al. 2022). Report MaAsLin2 results as such.
+- **One differential abundance method.** Differential abundance methods can give different results on the same data (Nearing et al. 2022). Report MaAsLin 3 results as such.
 - **Small groups.** Permutation tests cannot produce small p-values with very few samples. With 3 vs 2 samples there are only 10 distinct permutations, so p ≥ 0.1.
 
 For other designs, data types or analyses, [nf-core/ampliseq](https://nf-co.re/ampliseq) offers many more options.
@@ -375,7 +377,7 @@ If you use auto16s, please cite the tools it relies on:
 - **phyloseq**: McMurdie P.J., Holmes S. (2013). phyloseq. *PLoS ONE* 8:e61217.
 - **vegan**: Oksanen J. et al. vegan: Community Ecology Package.
 - **betadisper**: Anderson M.J. (2006). Distance-based tests for homogeneity of multivariate dispersions. *Biometrics* 62:245–253.
-- **MaAsLin2**: Mallick H. et al. (2021). Multivariable association discovery in population-scale meta-omics studies. *PLoS Comput Biol* 17:e1009442.
+- **MaAsLin 3**: Nickols W.A. et al. (2026). MaAsLin 3: refining and extending generalized multivariate linear models for meta-omic association discovery. *Nat Methods*.
 - **MultiQC**: Ewels P. et al. (2016). MultiQC. *Bioinformatics* 32:3047–3048.
 - **ggplot2**: Wickham H. (2016). *ggplot2: Elegant Graphics for Data Analysis*. Springer.
 

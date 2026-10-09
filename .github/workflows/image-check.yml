@@ -27,4 +27,4 @@ jobs:
       - name: R packages load
         run: |
           docker run --rm "${{ steps.img.outputs.image }}" Rscript -e \
-            'for (p in c("phyloseq", "Maaslin2", "vegan", "ggplot2")) { suppressMessages(library(p, character.only = TRUE)); cat(p, as.character(packageVersion(p)), "\n") }'
+            'for (p in c("phyloseq", "maaslin3", "vegan", "ggplot2")) { suppressMessages(library(p, character.only = TRUE)); cat(p, as.character(packageVersion(p)), "\n") }'
