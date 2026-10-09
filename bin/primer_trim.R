@@ -12,12 +12,21 @@ status <- get("status")
 id <- opt$sample
 outF <- paste0(id, "_R1.trim.fastq.gz"); outR <- paste0(id, "_R2.trim.fastq.gz")
 
-count_reads <- function(f) { s <- FastqStreamer(f, n = 2e5); on.exit(close(s)); n <- 0
-  repeat { x <- yield(s); if (!length(x)) break; n <- n + length(x) }; n }
 
 if (status == "none") {
-  file.copy(opt$r1, outF); file.copy(opt$r2, outR)
-  n_in <- count_reads(opt$r1); n_out <- n_in; n_swap <- 0; offs <- integer(0)
+  # no primers to remove: re-write compressed (input may be uncompressed .fastq)
+  sF <- FastqStreamer(opt$r1, n = 2e5); sR <- FastqStreamer(opt$r2, n = 2e5)
+  writeFastq(ShortReadQ(), outF, mode = "w", compress = TRUE)
+  writeFastq(ShortReadQ(), outR, mode = "w", compress = TRUE)
+  n_in <- 0
+  repeat {
+    a <- yield(sF); b <- yield(sR)
+    if (!length(a)) break
+    n_in <- n_in + length(a)
+    writeFastq(a, outF, mode = "a", compress = TRUE); writeFastq(b, outR, mode = "a", compress = TRUE)
+  }
+  close(sF); close(sR)
+  n_out <- n_in; n_swap <- 0; offs <- integer(0)
 } else {
   fp <- get("fw_primer"); rp <- get("rv_primer")
   sF <- FastqStreamer(opt$r1, n = 2e5); sR <- FastqStreamer(opt$r2, n = 2e5)

@@ -1,7 +1,7 @@
 # auto16s
 
 [![CI](https://github.com/ozlemsagiroglu/auto16s/actions/workflows/ci.yml/badge.svg)](https://github.com/ozlemsagiroglu/auto16s/actions/workflows/ci.yml)
-[![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A524.04.0-23aa62.svg)](https://www.nextflow.io/)
+[![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A525.04.0-23aa62.svg)](https://www.nextflow.io/)
 [![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?logo=docker)](https://www.docker.com/)
 [![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg)](https://apptainer.org/)
 [![run with conda](https://img.shields.io/badge/run%20with-conda-3EB049?logo=anaconda)](https://docs.conda.io/en/latest/)
@@ -53,7 +53,7 @@ The only required input is a samplesheet.
 
 ## Quick start
 
-1. Install [Nextflow](https://www.nextflow.io/docs/latest/install.html) (≥ 24.04, Java 17+) and **one** of the software stacks below. On Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+1. Install [Nextflow](https://www.nextflow.io/docs/latest/install.html) (≥ 25.04, Java 17+) and **one** of the software stacks below. On Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 
 2. Test the installation (8 small samples, a few minutes). Nextflow downloads the pipeline from GitHub:
 
@@ -61,13 +61,19 @@ The only required input is a samplesheet.
    nextflow run ozlemsagiroglu/auto16s -profile test,docker      # or test,singularity / test,conda
    ```
 
-3. Run your data:
+3. Create the samplesheet from your FASTQ folder, then fill in the `group` column ([details](#input)):
+
+   ```bash
+   nextflow run ozlemsagiroglu/auto16s --input raw/
+   ```
+
+4. Run your data:
 
    ```bash
    nextflow run ozlemsagiroglu/auto16s -profile docker --input samplesheet.csv --outdir results
    ```
 
-4. Open `results/multiqc/multiqc_report.html`. Read the **"DADA2 summary and warnings"** table first.
+5. Open `results/multiqc/multiqc_report.html`. Read the **"DADA2 summary and warnings"** table first.
 
 Add `-resume` to rerun after a change; finished steps are reused. Add `-r v0.3.0` to run a fixed release.
 
@@ -92,26 +98,81 @@ nextflow run ozlemsagiroglu/auto16s -profile singularity --r_container $PWD/auto
 
 ## Input
 
-One CSV file holds the reads **and** the sample metadata:
+The pipeline needs one table, the **samplesheet**. It tells the pipeline which FASTQ files belong to which sample and which group each sample is in. One row per sample.
 
-```csv
-sample,fastq_1,fastq_2,group,age
-Patient01,raw/Patient01_R1.fastq.gz,raw/Patient01_R2.fastq.gz,control,34
-Patient02,raw/Patient02_R1.fastq.gz,raw/Patient02_R2.fastq.gz,case,41
+### Let the pipeline write it
+
+Point `--input` to the folder with your FASTQ files:
+
+```bash
+nextflow run ozlemsagiroglu/auto16s --input raw/
 ```
 
-| Column | Description |
-|---|---|
-| `sample` | Unique name. Starts with a letter; letters, digits, `.`, `_` and `-` only |
-| `fastq_1`, `fastq_2` | R1 and R2 files (`.fastq.gz`). Absolute paths, or relative to the CSV's folder |
-| `group` | The groups to compare (at least 2). Another column can be used with `--group_col` |
-| any other column | Kept as sample metadata in the phyloseq object |
+The pipeline:
+- pairs the R1 and R2 files by their names;
+- writes `samplesheet.csv` in the current folder, with the `group` column left empty;
+- stops.
 
-The samplesheet is checked before anything runs. The pipeline stops on duplicate names, missing files, empty groups or fewer than 2 groups, and warns about groups with fewer than 3 samples.
+Fill in the group of every sample (for example `control` or `patient`), then start the analysis:
+
+```bash
+nextflow run ozlemsagiroglu/auto16s -profile docker --input samplesheet.csv
+```
+
+File names it recognises: `S1_R1.fastq.gz`/`S1_R2.fastq.gz`, `S1_1.fq.gz`/`S1_2.fq.gz`, `S1.R1.fastq`, and Illumina's `S1_S1_L001_R1_001.fastq.gz`; the last one becomes sample `S1`. Sample names are cleaned automatically: characters such as `ş`, `ç` or spaces are replaced, and a name that starts with a digit gets an `S` in front. Files without a partner are listed and left out.
+
+### Or write it yourself
+
+Example: a project folder
+
+```
+project/
+├── samplesheet.csv
+└── raw/
+    ├── K1_R1.fastq.gz    K1_R2.fastq.gz
+    ├── K2_R1.fastq.gz    K2_R2.fastq.gz
+    ├── P1_R1.fastq.gz    P1_R2.fastq.gz
+    └── P2_R1.fastq.gz    P2_R2.fastq.gz
+```
+
+and its `samplesheet.csv`:
+
+```csv
+sample,fastq_1,fastq_2,group,age,sex
+K1,raw/K1_R1.fastq.gz,raw/K1_R2.fastq.gz,control,34,F
+K2,raw/K2_R1.fastq.gz,raw/K2_R2.fastq.gz,control,41,M
+P1,raw/P1_R1.fastq.gz,raw/P1_R2.fastq.gz,patient,38,F
+P2,raw/P2_R1.fastq.gz,raw/P2_R2.fastq.gz,patient,45,M
+```
+
+| Column | What to write | Rules |
+|---|---|---|
+| `sample` | Name of the sample; it is used in every table and figure | Must start with a letter; English letters, digits, `.`, `_` and `-` only (no spaces). Each name once |
+| `fastq_1` | Path to the sample's **R1** (forward) file | `.fastq.gz`, `.fq.gz`, `.fastq` or `.fq` |
+| `fastq_2` | Path to the sample's **R2** (reverse) file | same |
+| `group` | Group the sample belongs to (control, patient, treatment, …) | At least 2 groups; 3 or more samples per group recommended. Spelling must match exactly: `Control` and `control` are two different groups. Another column can be used with `--group_col` |
+| other columns | Optional, e.g. age or sex | Not used in the analysis; kept in the phyloseq object for your own analyses in R |
+
+The first line must contain the column names exactly as above.
+
+**File paths** can be written in two ways:
+- **relative** to the samplesheet's folder, as in the example (`raw/K1_R1.fastq.gz`); the project folder can then be moved anywhere;
+- **absolute**, e.g. `/home/user/project/raw/K1_R1.fastq.gz`. On Windows with WSL, write `/mnt/c/Users/...`, not `C:\...`.
+
+Avoid spaces in folder and file names.
+
+**Excel works too.** Columns may be separated by commas, semicolons (what Excel writes with Turkish and most European language settings) or tabs; the separator is recognised automatically. "Save as CSV" from Excel is fine.
+
+**Checks before anything runs.** The pipeline stops with a clear message on:
+- missing columns, duplicate or invalid sample names;
+- files that do not exist or are not FASTQ;
+- empty groups, or fewer than 2 groups.
+
+It warns about groups with fewer than 3 samples, and prints the number of samples per group at the start.
 
 ## Parameters and defaults
 
-**Required:** `--input`.
+**Required:** `--input`: the samplesheet, or a folder of FASTQ files to create one (see [Input](#input)).
 
 **Optional**, only if needed:
 
