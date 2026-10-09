@@ -2,7 +2,7 @@ process BETA_DIVERSITY {
     label 'process_low'
     publishDir "${params.outdir}/beta_diversity", mode: params.publish_dir_mode, saveAs: { fn -> fn.endsWith('_mqc.png') || fn.endsWith('_mqc.tsv') ? null : fn }
 
-    conda "${projectDir}/envs/r_analysis.yml"
+    conda "${moduleDir}/../../envs/r_analysis.yml"
     container "${ params.r_container }"
 
     input:

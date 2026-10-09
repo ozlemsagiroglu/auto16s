@@ -16,11 +16,12 @@ process FASTQC {
     tuple val(meta), path('*.zip') , emit: zip
 
     script:
-    // Uniform names -> MultiQC shows "<sample>_R1" / "<sample>_R2"
+    // Uniform names -> MultiQC shows "<sample>_R1" / "<sample>_R2"; keep .gz only if the input is compressed
+    def ext = reads[0].name.endsWith('.gz') ? 'fastq.gz' : 'fastq'
     """
-    ln -s ${reads[0]} ${meta.id}_R1.fastq.gz
-    ln -s ${reads[1]} ${meta.id}_R2.fastq.gz
-    fastqc --quiet --threads ${task.cpus} ${meta.id}_R1.fastq.gz ${meta.id}_R2.fastq.gz
+    ln -s ${reads[0]} ${meta.id}_R1.${ext}
+    ln -s ${reads[1]} ${meta.id}_R2.${ext}
+    fastqc --quiet --threads ${task.cpus} ${meta.id}_R1.${ext} ${meta.id}_R2.${ext}
     """
 
     stub:

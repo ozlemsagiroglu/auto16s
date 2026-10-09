@@ -2,7 +2,7 @@ process PHYLOSEQ_BUILD {
     label 'process_medium'
     publishDir "${params.outdir}/phyloseq", mode: params.publish_dir_mode, saveAs: { fn -> fn.endsWith('_mqc.png') || fn.endsWith('_mqc.tsv') ? null : fn }
 
-    conda "${projectDir}/envs/r_analysis.yml"
+    conda "${moduleDir}/../../envs/r_analysis.yml"
     container "${ params.r_container }"
 
     input:
