@@ -1,6 +1,6 @@
 process DADA2 {
     label 'process_high'
-    publishDir "${params.outdir}/dada2", mode: params.publish_dir_mode, saveAs: { fn -> fn.contains('_mqc.') ? null : fn }
+    publishDir "${params.outdir}/dada2", mode: params.publish_dir_mode, saveAs: { fn -> (fn.contains('_mqc.') || fn.startsWith('filt/')) ? null : fn }
 
     conda "bioconda::bioconductor-dada2=1.38.0 conda-forge::r-base=4.5.2 conda-forge::r-digest=0.6.39 conda-forge::tbb=2022.3.0"
     container "${ workflow.containerEngine in ['singularity', 'apptainer']
@@ -19,6 +19,7 @@ process DADA2 {
     path '*.{png,pdf}'                , emit: plots
     path 'dada2.log'                  , emit: log
     path '*_sessionInfo.txt'          , emit: session
+    path 'filt/*_filt.fastq.gz'       , emit: filtered, optional: true   // for FastQC after filtering
 
     script:
     def r1s = r1 instanceof List ? r1 : [r1]
@@ -51,5 +52,6 @@ process DADA2 {
     touch seqtab_nochim.rds dada2_read_tracking.tsv dada2_truncation.tsv dada2.log dada2_sessionInfo.txt
     touch dada2_read_tracking_mqc.tsv dada2_truncation_mqc.tsv dada2_quality_truncation_mqc.png
     touch dada2_quality_truncation.png dada2_quality_truncation.pdf
+        mkdir filt; echo "" | gzip > filt/S1_F_filt.fastq.gz; echo "" | gzip > filt/S1_R_filt.fastq.gz
     """
 }

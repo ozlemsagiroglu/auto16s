@@ -1,7 +1,7 @@
 process FASTQC {
-    tag "${meta.id}"
+    tag "${meta.id}:${stage}"
     label 'process_low'
-    publishDir "${params.outdir}/fastqc", mode: params.publish_dir_mode
+    publishDir path: { "${params.outdir}/fastqc/${stage}" }, mode: params.publish_dir_mode
 
     conda 'bioconda::fastqc=0.13.0'
     container "${ workflow.containerEngine in ['singularity', 'apptainer']
@@ -10,22 +10,25 @@ process FASTQC {
 
     input:
     tuple val(meta), path(reads, stageAs: 'input/*')
+    val stage    // 'raw' or 'filtered' (after primer removal and DADA2 filterAndTrim)
 
     output:
     tuple val(meta), path('*.html'), emit: html
     tuple val(meta), path('*.zip') , emit: zip
 
     script:
-    // Uniform names -> MultiQC shows "<sample>_R1" / "<sample>_R2"; keep .gz only if the input is compressed
+    // Uniform names: "<sample>_R1" (raw) / "<sample>_filtered_R1"; keep .gz only if the input is compressed
     def ext = reads[0].name.endsWith('.gz') ? 'fastq.gz' : 'fastq'
+    def prefix = stage == 'raw' ? meta.id : "${meta.id}_${stage}"
     """
-    ln -s ${reads[0]} ${meta.id}_R1.${ext}
-    ln -s ${reads[1]} ${meta.id}_R2.${ext}
-    fastqc --quiet --threads ${task.cpus} ${meta.id}_R1.${ext} ${meta.id}_R2.${ext}
+    ln -s ${reads[0]} ${prefix}_R1.${ext}
+    ln -s ${reads[1]} ${prefix}_R2.${ext}
+    fastqc --quiet --threads ${task.cpus} ${prefix}_R1.${ext} ${prefix}_R2.${ext}
     """
 
     stub:
+    def prefix = stage == 'raw' ? meta.id : "${meta.id}_${stage}"
     """
-    touch ${meta.id}_R1_fastqc.html ${meta.id}_R2_fastqc.html ${meta.id}_R1_fastqc.zip ${meta.id}_R2_fastqc.zip
+    touch ${prefix}_R1_fastqc.html ${prefix}_R2_fastqc.html ${prefix}_R1_fastqc.zip ${prefix}_R2_fastqc.zip
     """
 }

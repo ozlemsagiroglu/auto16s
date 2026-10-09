@@ -65,6 +65,8 @@ text(X["filt"] - 75, Y - 120, "DADA2", 18, "bold", "start", C["asv"])
 # ---------------- report connectors (drawn first, under the lines) ----------------
 line([(X["fastqc"], Y), (X["fastqc"], YR), (XR, YR)], C["rep"], 8)
 line([(X["err"], Y), (X["err"], YR)], C["rep"], 4, "1 10")
+YF = 530                         # FastQC after filtering
+line([(X["filt"], YF), (X["filt"], YR)], C["rep"], 4, "1 10")
 line([(B["comp"] + 120, YB["comp"]), (XR, YB["comp"]), (XR, YR)], C["rep"], 4, "1 10")
 line([(B["da"] + 120, YB["da"]), (XR, YB["da"])], C["rep"], 4, "1 10")
 line([(B["beta"], YB["rare"]), (XR, YB["rare"])], C["rep"], 4, "1 10")
@@ -73,6 +75,7 @@ line([(B["beta"], YB["rare"]), (XR, YB["rare"])], C["rep"], 4, "1 10")
 line([(X["in"], Y), (X["ptrim"] + 90, Y)], C["qc"])
 line([(X["ptrim"] + 90, Y), (X["merge"] + 95, Y)], C["asv"])
 line([(X["merge"] + 95, Y), (SPLIT, Y)], C["tax"])
+line([(X["filt"], Y), (X["filt"], YF)], C["qc"], 8)
 line([(SPLIT, Y), (BX, YB["comp"]), (B["comp"] + 120, YB["comp"])], C["tax"])
 line([(SPLIT, Y), (BX, YB["da"]), (B["da"] + 120, YB["da"])], C["da"])
 line([(SPLIT, Y), (BX, YB["rare"]), (B["beta"], YB["rare"])], C["div"])
@@ -86,10 +89,10 @@ label(x, Y, "Raw reads", ["R1 / R2", "+ samplesheet"], "below")
 
 # ---------------- main stations ----------------
 main = [
-    ("fastqc", "FastQC", ["read quality"], "above"),
+    ("fastqc", "FastQC", ["raw reads"], "above"),
     ("pdet", "Primer detection", ["library of common", "16S primers"], "below"),
-    ("ptrim", "Primer removal", ["per read; spacers and", "reverse-oriented pairs"], "above"),
-    ("filt", "Filter + truncate", ["truncLen (automatic)", "maxEE = 2"], "below"),
+    ("ptrim", "Primer removal", ["per read, then checked;", "spacers, reverse pairs"], "above"),
+    ("filt", "Filter + truncate", ["truncLen (automatic)", "maxEE = 2"], "above"),
     ("err", "Error model + denoise", ["learnErrors, dada", "R1 and R2 separately"], "above"),
     ("merge", "Merge + chimeras", ["mergePairs", "removeBimeraDenovo"], "below"),
     ("tax", "Taxonomy", ["SILVA 138.1", "assignTaxonomy"], "above"),
@@ -100,6 +103,9 @@ for k, t, sub, where in main:
     label(X[k], Y, t, sub, where)
 
 # ---------------- branch stations ----------------
+station(X["filt"], YF)
+text(X["filt"] + 26, YF - 3, "FastQC", 17, "bold", "start")
+text(X["filt"] + 26, YF + 17, "filtered reads", 14, "normal", "start", "#555")
 station(B["comp"], YB["comp"]); label(B["comp"], YB["comp"], "Composition", ["bar plots (phylum, family, genus),", "genus heatmap (all reads)"], "above")
 station(B["da"], YB["da"]); label(B["da"], YB["da"], "Differential abundance", ["MaAsLin2, genus level (all reads)"], "below")
 station(B["rare"], YB["rare"]); label(B["rare"], YB["rare"], "Rarefaction", ["automatic depth"], "below")

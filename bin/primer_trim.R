@@ -26,11 +26,11 @@ if (status == "none") {
     writeFastq(a, outF, mode = "a", compress = TRUE); writeFastq(b, outR, mode = "a", compress = TRUE)
   }
   close(sF); close(sR)
-  n_out <- n_in; n_swap <- 0; offs <- integer(0)
+  n_out <- n_in; n_swap <- 0; offs <- integer(0); left_F <- NA; left_R <- NA
 } else {
   fp <- get("fw_primer"); rp <- get("rv_primer")
   sF <- FastqStreamer(opt$r1, n = 2e5); sR <- FastqStreamer(opt$r2, n = 2e5)
-  n_in <- 0; n_out <- 0; n_swap <- 0; offs <- integer(0)
+  n_in <- 0; n_out <- 0; n_swap <- 0; offs <- integer(0); left_F <- 0; left_R <- 0
   writeFastq(ShortReadQ(), outF, mode = "w", compress = TRUE)
   writeFastq(ShortReadQ(), outR, mode = "w", compress = TRUE)
   repeat {
@@ -40,6 +40,9 @@ if (status == "none") {
     t <- trim_chunk(a, b, fp, rp)
     n_in <- n_in + length(a); n_out <- n_out + length(t$F); n_swap <- n_swap + t$n_swap
     offs <- c(offs, t$offsets)
+    # check: after trimming, the read starts must no longer match the primer
+    left_F <- left_F + sum(!is.na(primer_end(sread(t$F), fp)))
+    left_R <- left_R + sum(!is.na(primer_end(sread(t$R), rp)))
     if (length(t$F)) {
       writeFastq(t$F, outF, mode = "a", compress = TRUE)
       writeFastq(t$R, outR, mode = "a", compress = TRUE)
@@ -50,6 +53,8 @@ if (status == "none") {
 stats <- data.frame(sample = id, input = n_in, with_primers = n_out,
                     with_primers_pct = round(100 * n_out / max(n_in, 1), 1),
                     swapped_pct = round(100 * n_swap / max(n_out, 1), 1),
-                    spacer_max = if (length(offs)) max(0, max(offs)) else 0)
+                    spacer_max = if (length(offs)) max(0, max(offs)) else 0,
+                    primer_left_R1_pct = round(100 * left_F / max(n_out, 1), 2),
+                    primer_left_R2_pct = round(100 * left_R / max(n_out, 1), 2))
 write_tsv(stats, paste0(id, ".primer_stats.tsv"))
 message(sprintf("%s: %d read pairs, %d with primers (%.1f%%), %d swapped", id, n_in, n_out, stats$with_primers_pct, n_swap))

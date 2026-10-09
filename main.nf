@@ -12,7 +12,8 @@
  */
 nextflow.enable.dsl = 2
 
-include { FASTQC          } from './modules/local/fastqc'
+include { FASTQC as FASTQC_RAW      } from './modules/local/fastqc'
+include { FASTQC as FASTQC_FILTERED } from './modules/local/fastqc'
 include { PRIMER_DETECT   } from './modules/local/primer_detect'
 include { PRIMER_TRIM     } from './modules/local/primer_trim'
 include { DADA2           } from './modules/local/dada2'
@@ -158,6 +159,15 @@ def draftSamplesheet(dir) {
     if (unmatched) log.warn "Files without a matching R1/R2 partner (not included): ${unmatched.join(', ')}"
 }
 
+// DADA2's filtered reads (<sample>_F_filt.fastq.gz / _R_) back to [meta, [R1, R2]]
+def filteredPairs(ch) {
+    return ch
+        .flatten()
+        .map { f -> [f.name.replaceAll(/_[FR]_filt\.fastq\.gz$/, ''), f] }
+        .groupTuple(size: 2)
+        .map { id, files -> [[id: id], files.sort { f -> f.name }] }      // _F_ sorts before _R_
+}
+
 def toManifest(ch) {
     return ch
         .toSortedList { a, b -> a[0].id <=> b[0].id }
@@ -178,8 +188,8 @@ workflow {
         ch_sheet = channel.value(sheet[1])
         ch_silva = channel.value(file(params.silva_db, checkIfExists: true))
 
-        // QC
-        FASTQC(ch_reads)
+        // QC of the raw reads
+        FASTQC_RAW(ch_reads, 'raw')
 
         // Primers: detect once from all samples, then remove per sample
         PRIMER_DETECT(toManifest(ch_reads), file("${projectDir}/assets/primers_16s.tsv", checkIfExists: true))
@@ -188,6 +198,9 @@ workflow {
         // ASVs: all samples together (one error model for the run)
         DADA2(toManifest(PRIMER_TRIM.out.reads), PRIMER_TRIM.out.stats.collect())
         DADA2_TAXONOMY(DADA2.out.seqtab, ch_silva)
+
+        // QC again after primer removal and DADA2 filtering: did the trimming work?
+        FASTQC_FILTERED(filteredPairs(DADA2.out.filtered), 'filtered')
 
         // phyloseq + rarefaction
         PHYLOSEQ_BUILD(DADA2.out.seqtab, DADA2_TAXONOMY.out.taxa, ch_sheet)
@@ -199,7 +212,8 @@ workflow {
         MAASLIN2(PHYLOSEQ_BUILD.out.ps)
 
         // one report
-        ch_mqc = FASTQC.out.zip.map { _meta, z -> z }.flatten()
+        ch_mqc = FASTQC_RAW.out.zip.map { _meta, z -> z }.flatten()
+            .mix(FASTQC_FILTERED.out.zip.map { _meta, z -> z }.flatten())
             .mix(PRIMER_DETECT.out.mqc.flatten(), DADA2.out.mqc.flatten(), PHYLOSEQ_BUILD.out.mqc.flatten(),
                  COMPOSITION.out.mqc.flatten(), ALPHA_DIVERSITY.out.mqc.flatten(), BETA_DIVERSITY.out.mqc.flatten(),
                  MAASLIN2.out.mqc.flatten())

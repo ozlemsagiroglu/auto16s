@@ -6,12 +6,14 @@
 <text x="765" y="220" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="18" font-weight="bold" text-anchor="start" fill="#009E73" >DADA2</text>
 <path d="M 280,340 L 280,640 L 2290,640" fill="none" stroke="#8C8C8C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 1020,340 L 1020,640" fill="none" stroke="#8C8C8C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 10"/>
+<path d="M 840,530 L 840,640" fill="none" stroke="#8C8C8C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 10"/>
 <path d="M 2000,178 L 2290,178 L 2290,640" fill="none" stroke="#8C8C8C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 10"/>
 <path d="M 2000,268 L 2290,268" fill="none" stroke="#8C8C8C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 10"/>
 <path d="M 2170,470 L 2290,470" fill="none" stroke="#8C8C8C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 10"/>
 <path d="M 110,340 L 730,340" fill="none" stroke="#0072B2" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 730,340 L 1295,340" fill="none" stroke="#009E73" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 1295,340 L 1680,340" fill="none" stroke="#E69F00" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 840,340 L 840,530" fill="none" stroke="#0072B2" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 1680,340 L 1800,178 L 2000,178" fill="none" stroke="#E69F00" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 1680,340 L 1800,268 L 2000,268" fill="none" stroke="#D55E00" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 1680,340 L 1800,470 L 2170,470" fill="none" stroke="#CC79A7" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
@@ -23,19 +25,19 @@
 <text x="110" y="427" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >+ samplesheet</text>
 <circle cx="280" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
 <text x="280" y="287" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >FastQC</text>
-<text x="280" y="310" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >read quality</text>
+<text x="280" y="310" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >raw reads</text>
 <circle cx="460" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
 <text x="460" y="386" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Primer detection</text>
 <text x="460" y="408" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >library of common</text>
 <text x="460" y="427" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >16S primers</text>
 <circle cx="640" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
 <text x="640" y="268" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Primer removal</text>
-<text x="640" y="291" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >per read; spacers and</text>
-<text x="640" y="310" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >reverse-oriented pairs</text>
+<text x="640" y="291" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >per read, then checked;</text>
+<text x="640" y="310" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >spacers, reverse pairs</text>
 <circle cx="840" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
-<text x="840" y="386" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Filter + truncate</text>
-<text x="840" y="408" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >truncLen (automatic)</text>
-<text x="840" y="427" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >maxEE = 2</text>
+<text x="840" y="268" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Filter + truncate</text>
+<text x="840" y="291" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >truncLen (automatic)</text>
+<text x="840" y="310" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >maxEE = 2</text>
 <circle cx="1020" cy="340" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
 <text x="1020" y="268" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Error model + denoise</text>
 <text x="1020" y="291" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >learnErrors, dada</text>
@@ -52,6 +54,9 @@
 <text x="1570" y="386" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >phyloseq</text>
 <text x="1570" y="408" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >drop Eukaryota, chloroplasts,</text>
 <text x="1570" y="427" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >mitochondria</text>
+<circle cx="840" cy="530" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
+<text x="866" y="527" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="start" fill="#222" >FastQC</text>
+<text x="866" y="547" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="start" fill="#555" >filtered reads</text>
 <circle cx="1880" cy="178" r="14" fill="white" stroke="#1a1a1a" stroke-width="4"/>
 <text x="1880" y="106" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="17" font-weight="bold" text-anchor="middle" fill="#222" >Composition</text>
 <text x="1880" y="129" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14" font-weight="normal" text-anchor="middle" fill="#555" >bar plots (phylum, family, genus),</text>

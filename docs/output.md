@@ -15,7 +15,7 @@ All paths are relative to `--outdir` (default `results/`). Figures are saved as 
 |---|---|
 | `primers.tsv` | Detected (or given) primers: names, sequences, 16S region, share of read pairs with both primers, share in reverse orientation, warnings. `status` is `detected`, `user` or `none` |
 | `primer_detection.png` | Share of R1 and R2 reads starting with each candidate primer; the selected pair is highlighted |
-| `stats/<sample>.primer_stats.tsv` | Per sample: read pairs in, pairs with both primers, % reverse-oriented (swapped), longest spacer seen |
+| `stats/<sample>.primer_stats.tsv` | Per sample: read pairs in, pairs with both primers, % reverse-oriented (swapped), longest spacer seen, and `primer_left_R1_pct`/`primer_left_R2_pct`: % of reads that still contain the primer after removal (should be ≈ 0) |
 
 ## `dada2/`
 
@@ -100,7 +100,8 @@ Genera without a SILVA genus assignment are named after the nearest assigned ran
 
 | File | Content |
 |---|---|
-| `fastqc/<sample>_R1_fastqc.html`, `_R2` | FastQC report per read file |
+| `fastqc/raw/<sample>_R1_fastqc.html`, `_R2` | FastQC report per raw read file |
+| `fastqc/filtered/<sample>_filtered_R1_fastqc.html`, `_R2` | FastQC report of the reads after DADA2 quality filtering and truncation (the reads that go into denoising) |
 | `pipeline_info/report.html`, `timeline.html`, `trace.tsv`, `dag.html` | Nextflow execution report: resources and run time per task |
 
 Every R step also writes `<step>_sessionInfo.txt` with the exact R and package versions used.

@@ -59,7 +59,9 @@ primer_msgs <- character(0)
 
 # --- amplicon length (without primers) from the overlap of R1 and reverse-complemented R2
 rc <- function(x) as.character(Biostrings::reverseComplement(Biostrings::DNAStringSet(x)))
-idx <- unique(round(seq(1, length(seqF), length.out = min(400, length(seqF)))))
+# only pairs without ambiguous bases (N): nwalign accepts A/C/G/T only
+acgt <- which(grepl("^[ACGT]+$", seqF) & grepl("^[ACGT]+$", seqR))
+idx <- if (length(acgt)) acgt[unique(round(seq(1, length(acgt), length.out = min(400, length(acgt)))))] else integer(0)
 amp_len <- vapply(idx, function(i) {
   a <- substring(seqF[i], fw_len + 1)
   b <- rc(substring(seqR[i], rv_len + 1))
@@ -193,6 +195,16 @@ if (!is.na(med_merge) && med_merge < 70) message("WARNING: median merge rate < 7
 if (chim_kept < 0.8) message("WARNING: < 80% of reads survived chimera removal. Most common cause: primers still in the reads (see primer detection).")
 
 # ---------- summary table with all warnings (shown at the top of the MultiQC report) ----------
+# per-sample primer removal check (from PRIMER_TRIM)
+if (!is.null(pstat)) {
+  pcols <- intersect(c("sample", "input", "with_primers", "with_primers_pct", "swapped_pct", "spacer_max",
+                       "primer_left_R1_pct", "primer_left_R2_pct"), colnames(pstat))
+  write_mqc_table(pstat[order(pstat$sample), pcols], "primer_removal_mqc.tsv", "primer_removal", "Primer removal per sample",
+                  "Read pairs with both primers (kept), share reverse-oriented (swapped), and the check after trimming: primer_left = % of trimmed reads that still start with the primer (should be ~0).")
+  left <- suppressWarnings(max(c(pstat$primer_left_R1_pct, pstat$primer_left_R2_pct), na.rm = TRUE))
+  if (is.finite(left) && left > 1)
+    primer_msgs <- c(primer_msgs, sprintf("Up to %.1f%% of trimmed reads still start with a primer: primer removal was incomplete (see 'Primer removal per sample').", left))
+}
 qc_warn <- c(primer_msgs,
   if (!is.na(med_merge) && med_merge < 70) "Median merge rate < 70%: truncLen may be too short for the overlap.",
   if (chim_kept < 0.8) "< 80% of reads survived chimera removal: primers may still be in the reads (see primer detection).",

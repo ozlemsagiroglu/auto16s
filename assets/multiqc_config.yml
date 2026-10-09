@@ -6,6 +6,20 @@ run_modules:
   - fastqc
   - custom_content
 
+# FastQC twice: raw reads, and reads after primer removal + DADA2 filterAndTrim
+module_order:
+  - fastqc:
+      name: "FastQC: raw reads"
+      anchor: "fastqc_raw"
+      info: "Reads as delivered by the sequencer."
+      path_filters_exclude: ["*_filtered_R*_fastqc.zip"]
+  - fastqc:
+      name: "FastQC: after primer removal and filtering"
+      anchor: "fastqc_filtered"
+      info: "Reads that entered DADA2 denoising: primers removed, truncated at truncLen, reads above maxEE discarded. Compare with the raw reads: the low-quality ends should be gone."
+      path_filters: ["*_filtered_R*_fastqc.zip"]
+  - custom_content
+
 # Replace MultiQC's default name cleaning (it cuts e.g. '_qual' from 'dada2_quality_truncation')
 fn_clean_exts:
   - ".png"
@@ -32,10 +46,12 @@ custom_data:
 report_section_order:
   dada2_truncation:         { order: 1000 }
   primer_detection:         { order: 995 }
+  primer_removal:           { order: 993 }
   dada2_quality_truncation: { order: 990 }
   dada2_read_tracking:      { order: 970 }
   dada2_read_tracking_plot: { order: 965 }
-  fastqc:                   { order: 960 }
+  fastqc_raw:               { order: 962 }
+  fastqc_filtered:          { order: 961 }
   taxonomic_filtering:      { order: 950 }
   sample_depths:            { order: 940 }
   sample_depths_plot:       { order: 935 }

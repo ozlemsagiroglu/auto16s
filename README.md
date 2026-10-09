@@ -34,15 +34,17 @@ The only required input is a samplesheet.
 
 ## Pipeline summary
 
-1. **Read QC** ([FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
+1. **Read QC** of the raw reads ([FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
 2. **Primer detection**: the read starts are matched against a library of common 16S primers ([`assets/primers_16s.tsv`](assets/primers_16s.tsv)).
-3. **Primer removal**, per read and by sequence. This handles variable-length spacers before the primer and pairs in reverse orientation. Pairs without both primers are dropped.
+3. **Primer removal**, per read and by sequence. This handles variable-length spacers before the primer and pairs in reverse orientation. Pairs without both primers are dropped. Afterwards every read is checked again for the primer, so the report shows whether removal worked.
 4. **ASV inference** ([DADA2](https://benjjneb.github.io/dada2/)):
    - quality filtering with automatic `truncLen` and `maxEE`;
    - error models for R1 and R2;
    - denoising;
    - `mergePairs`;
    - consensus chimera removal.
+
+   The filtered and truncated reads go through FastQC a second time, so the report shows the quality before and after filtering side by side.
 5. **Taxonomy**: DADA2 `assignTaxonomy` against [SILVA 138.1](https://doi.org/10.5281/zenodo.4587955).
 6. **phyloseq object** ([phyloseq](https://joey711.github.io/phyloseq/)). Unassigned, eukaryotic, chloroplast and mitochondrial ASVs are removed, then rarefaction at an automatically chosen depth.
 7. **Composition**: phylum, family and genus bar plots per sample and per group, plus a genus heatmap (all reads).
@@ -185,7 +187,7 @@ It warns about groups with fewer than 3 samples, and prints the number of sample
 | `--fw_primer`, `--rv_primer` | detected | Primer sequences (5'→3', IUPAC), only if your primers are not in the library |
 | `--trunc_len_f`, `--trunc_len_r` | automatic | Fixed truncation lengths |
 | `--rarefy_depth` | automatic | Fixed rarefaction depth |
-| `--max_cpus`, `--max_memory`, `--max_time` | `8`, `32.GB`, `24.h` | Upper limits per task |
+| `--max_cpus`, `--max_memory`, `--max_time` | all CPUs and all memory of the machine, `24.h` | Upper limits per task. Tasks never ask for more than these, so the pipeline also runs on a laptop |
 
 **Settings applied in every run.** These are literature-standard values, stored in [`nextflow.config`](nextflow.config):
 
@@ -269,7 +271,7 @@ All results are in `--outdir`. Besides the figures, every number behind a figure
 | `primers/` | Detected primers, detection plot, per-sample primer statistics |
 | `dada2/` | Summary and warnings, read tracking, truncation, error models, ASV lengths, sequence table |
 | `taxonomy/` | SILVA assignment per ASV sequence |
-| `fastqc/` | FastQC report per file |
+| `fastqc/` | FastQC reports: `raw/` before and `filtered/` after DADA2 quality filtering |
 | `pipeline_info/` | Nextflow execution report, timeline, trace |
 
 Each file is described in [docs/output.md](docs/output.md). Figures are saved as PNG (300 dpi) and PDF.
@@ -318,8 +320,21 @@ The report starts with **DADA2 summary and warnings**. Possible warnings:
 | Only x % of read pairs carry the primers | Off-target products, or a primer variant not in the library |
 | < 80 % of reads survived chimera removal | Primers still in the reads |
 | Median merge rate < 70 % | Reads too short to overlap after truncation |
+| Primer still found in > 1 % of reads after removal | A primer variant that is not in the library, or very long spacers |
+
+**Did filtering work?** The report has two FastQC sections, *raw reads* and *after DADA2 filtering*. After filtering, all reads of a sample have the same length, the low-quality 3' ends are gone and the per-base quality stays high to the end of the read. The section **Primer removal check** lists, per sample, the share of reads that still contain the primer after removal; it should be close to 0 %.
+
+Merged reads cannot be checked with FastQC, because DADA2 merges the denoised sequences (ASVs), not the reads. The merge is checked by the read tracking table (reads lost at merging) and the ASV length plot below.
 
 **Sanity check: ASV length.** `dada2/dada2_asv_length.png` should show one main peak at the length of your region without primers (e.g. V4 ≈ 253 bp, V3-V4 ≈ 400–430 bp). Small peaks far from it are usually off-target products.
+
+## Troubleshooting
+
+| Message | Solution |
+|---|---|
+| `Process requirement exceeds available memory` | Only with older versions: update with `nextflow pull ozlemsagiroglu/auto16s`. The pipeline now limits every task to the memory of the machine. To keep memory free for other work, set a lower limit, e.g. `--max_memory 6.GB` |
+| DADA2 is killed (exit status 137) | Not enough memory. Close other programs or, under WSL, raise the memory limit in `%UserProfile%\.wslconfig` (`[wsl2]` / `memory=12GB`) and run `wsl --shutdown`. Then add `-resume` |
+| A run stops halfway | Fix the cause and run the same command again with `-resume`; finished steps are not repeated |
 
 ## Scope and limitations
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Builds a small realistic test set from DADA2's bundled V4 example reads (2 x 250 bp, mouse gut).
 # Real 515F/806R primers (degenerate bases resolved at random per read) are prepended, so trimLeft
-# and primer detection are exercised. 8 samples, 2 groups with different mixing ratios.
+# and primer detection are exercised. 8 samples, 2 groups with different mixing ratios; ~3 % of reads carry an N.
 #   Rscript tests/make_test_data.R tests/data                  # primers at a fixed position
 #   Rscript tests/make_test_data.R tests/data_spacer spacer    # 0-7 nt spacers + half of the pairs reverse-oriented
 #   Rscript tests/make_test_data.R tests/data_noprimer none    # primers already removed
@@ -31,6 +31,15 @@ add_primer <- function(fq, primer, spacer = integer(length(fq))) {
   ShortReadQ(DNAStringSet(paste0(p, as.character(sread(fq)))),
              FastqQuality(paste0(q, as.character(quality(quality(fq))))), id(fq))
 }
+# real runs contain occasional ambiguous base calls: put one N into ~3 % of the reads
+add_n <- function(fq, frac = 0.03) {
+  s <- as.character(sread(fq))
+  for (i in sample(length(s), ceiling(frac * length(s)))) {
+    pos <- sample(30:min(150, nchar(s[i])), 1)
+    substr(s[i], pos, pos) <- "N"
+  }
+  ShortReadQ(DNAStringSet(s), quality(fq), id(fq))
+}
 mix <- function(frac1, n = 2500) {
   k1 <- rbinom(1, n, frac1)
   i1 <- sample(length(s1F), k1, replace = TRUE); i2 <- sample(length(s2F), n - k1, replace = TRUE)
@@ -48,6 +57,7 @@ for (i in seq_len(nrow(design))) {
     sw <- seq_len(n) %% 2 == 0
     F2 <- append(F[!sw], R[sw]); R2 <- append(R[!sw], F[sw]); F <- F2; R <- R2
   }
+  F <- add_n(F); R <- add_n(R)
   writeFastq(F, file.path(out, paste0(design$sample[i], "_R1.fastq.gz")), compress = TRUE)
   writeFastq(R, file.path(out, paste0(design$sample[i], "_R2.fastq.gz")), compress = TRUE)
 }
