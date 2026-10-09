@@ -54,6 +54,10 @@ jobs:
           done
           grep -qP "^status\tdetected" results/primers/primers.tsv
 
+      - name: Report failed tasks
+        if: failure()
+        run: .github/scripts/report_failed_tasks.sh
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -93,6 +97,10 @@ jobs:
 
       - name: Check the main outputs
         run: test -s results/multiqc/multiqc_report.html && test -s results/phyloseq/phyloseq_object.rds
+
+      - name: Report failed tasks
+        if: failure()
+        run: .github/scripts/report_failed_tasks.sh
 
       - uses: actions/upload-artifact@v4
         if: always()
