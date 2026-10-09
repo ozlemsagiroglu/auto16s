@@ -1,0 +1,30 @@
+name: Public image check
+
+# Pulls the published R image without logging in, exactly as a pipeline user would,
+# and checks that its R packages load. Runs after every image publication and on demand.
+on:
+  workflow_run:
+    workflows: ["R image"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  pull-anonymously:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Image name from nextflow.config
+        id: img
+        run: echo "image=$(grep -oP "r_container\s*=\s*'\K[^']+" nextflow.config)" >> "$GITHUB_OUTPUT"
+
+      - name: Pull without credentials
+        run: |
+          docker logout ghcr.io || true
+          docker pull "${{ steps.img.outputs.image }}"
+
+      - name: R packages load
+        run: |
+          docker run --rm "${{ steps.img.outputs.image }}" Rscript -e \
+            'for (p in c("phyloseq", "Maaslin2", "vegan", "ggplot2")) { suppressMessages(library(p, character.only = TRUE)); cat(p, as.character(packageVersion(p)), "\n") }'
