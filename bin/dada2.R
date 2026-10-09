@@ -11,6 +11,13 @@ opt <- parse_args()
 suppressPackageStartupMessages({ library(dada2); library(ggplot2) })
 
 cpus        <- as.integer(opt$cpus)
+# Second guard: memory that is actually free now (other programs, WSL limits). ~2 GB per thread.
+mem_avail <- tryCatch({
+  l <- grep("^MemAvailable:", readLines("/proc/meminfo"), value = TRUE)
+  as.numeric(gsub("[^0-9]", "", l)) / 1024^2
+}, error = function(e) NA, warning = function(w) NA)
+if (length(mem_avail) == 1 && !is.na(mem_avail)) cpus <- max(1L, min(cpus, as.integer(mem_avail %/% 2)))
+message(sprintf("Threads: %d (free memory: %s GB)", cpus, ifelse(is.na(mem_avail), "unknown", sprintf("%.1f", mem_avail))))
 fw_len      <- 0L   # primers are removed before this step
 rv_len      <- 0L
 max_ee      <- as.numeric(opt$max_ee)

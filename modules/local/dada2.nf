@@ -26,6 +26,9 @@ process DADA2 {
     def r2s = r2 instanceof List ? r2 : [r2]
     def tf = params.trunc_len_f ?: 'NA'
     def tr = params.trunc_len_r ?: 'NA'
+    // filterAndTrim and removeBimeraDenovo fork one R process per thread (~1-2 GB each):
+    // use at most one thread per 2 GB of the task's memory
+    def threads = Math.max(1, Math.min(task.cpus as int, (task.memory.toMega() / 2048) as int))
     """
     ids=(${ids.join(' ')})
     r1=(${r1s.join(' ')})
@@ -42,7 +45,7 @@ process DADA2 {
         --trunc_qmin ${params.trunc_qmin} \\
         --max_ee ${params.max_ee} \\
         --min_overlap ${params.min_overlap} \\
-        --cpus ${task.cpus} \\
+        --cpus ${threads} \\
         --seed ${params.seed} \\
         2>&1 | tee dada2.log
     """

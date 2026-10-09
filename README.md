@@ -335,7 +335,7 @@ Merged reads cannot be checked with FastQC, because DADA2 merges the denoised se
 | Message | Solution |
 |---|---|
 | `Process requirement exceeds available memory` | Only with older versions: update with `nextflow pull ozlemsagiroglu/auto16s`. The pipeline now limits every task to the memory of the machine. To keep memory free for other work, set a lower limit, e.g. `--max_memory 6.GB` |
-| DADA2 is killed (exit status 137) | Not enough memory. Close other programs or, under WSL, raise the memory limit in `%UserProfile%\.wslconfig` (`[wsl2]` / `memory=12GB`) and run `wsl --shutdown`. Then add `-resume` |
+| DADA2 is killed (exit status 137 or 143, `Out of memory` in `journalctl`) | DADA2 already uses at most one thread per 2 GB of free memory. If it still runs out, lower the threads with `--max_cpus 2`, close other programs or, under WSL, raise the memory limit in `%UserProfile%\.wslconfig` (`[wsl2]` / `memory=12GB`) and run `wsl --shutdown`. Then add `-resume` |
 | A run stops halfway | Fix the cause and run the same command again with `-resume`; finished steps are not repeated |
 
 ## Scope and limitations
