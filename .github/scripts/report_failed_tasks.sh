@@ -9,7 +9,7 @@ for f in work/*/*/.exitcode; do
   code=$(cat "$f")
   [ "$code" = "0" ] && continue
   d=$(dirname "$f")
-  task=$(grep -m1 -oP '(?<=# NEXTFLOW TASK: ).*' "$d/.command.run" 2>/dev/null || echo "$d")
+  task=$(grep -m1 -oP "(?<=^### name: ').*(?=')|(?<=# NEXTFLOW TASK: ).*" "$d/.command.run" 2>/dev/null || echo "$d")
   err=$(tail -c 3500 "$d/.command.err" 2>/dev/null; echo; tail -c 1500 "$d/.command.out" 2>/dev/null)
   echo "::error title=$(escp "Failed task $task (exit $code)")::$(esc "$err")"
   n=$((n + 1))

@@ -78,7 +78,9 @@ excluded <- names(depths)[depths < depth]
 message(sprintf("Rarefaction depth %d (%s). Excluded from alpha/beta: %s", depth, depth_rule,
                 if (length(excluded)) paste(excluded, collapse = ", ") else "none"))
 
-ps_rare <- rarefy_even_depth(ps, sample.size = depth, rngseed = seed, replace = FALSE, trimOTUs = TRUE, verbose = FALSE)
+# seed set here, not through rngseed: newer phyloseq versions fail with rngseed when the RNG is not yet initialised
+set.seed(seed)
+ps_rare <- rarefy_even_depth(ps, sample.size = depth, rngseed = FALSE, replace = FALSE, trimOTUs = TRUE, verbose = FALSE)
 saveRDS(ps_rare, "phyloseq_object_rarefied.rds")
 otu_r <- t(as(otu_table(ps_rare), "matrix"))
 write_tsv(data.frame(ASV = rownames(otu_r), otu_r, check.names = FALSE), "asv_table_rarefied.tsv")
