@@ -45,8 +45,27 @@ x_text_fit <- function(labels, slot_in) {
   else ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 30, hjust = 1, vjust = 1))
 }
 
-# PNG (300 dpi) + vector PDF; optional low-res copy *_mqc.png that MultiQC embeds as an image section
+# Wrap text at spaces and after underscores (long taxon / group names)
+wrap_text <- function(x, width) {
+  vapply(as.character(x), function(s) {
+    if (is.na(s) || nchar(s) <= width) return(s)
+    lines <- vapply(strsplit(s, "\n", fixed = TRUE)[[1]], function(l)
+      gsub("_ ", "_", paste(strwrap(gsub("_", "_ ", l), width = width), collapse = "\n")), "")
+    paste(lines, collapse = "\n")
+  }, "", USE.NAMES = FALSE)
+}
+# characters that fit in the narrowest facet strip when facets get space in proportion to their samples
+strip_width_chars <- function(panels_in, n_per_group) {
+  max(6, floor(panels_in * min(n_per_group) / sum(n_per_group) / 0.085))
+}
+# facet labeller that wraps strip labels to `width` characters
+wrap_labeller <- function(width) ggplot2::as_labeller(function(x) wrap_text(x, width))
+
+# PNG (300 dpi) + vector PDF; optional low-res copy *_mqc.png that MultiQC embeds as an image section.
+# Title and subtitle are wrapped to the figure width so they are never cut off.
 save_fig <- function(p, name, width = 8, height = 6, mqc = FALSE) {
+  if (!is.null(p$labels$title))    p$labels$title    <- wrap_text(p$labels$title, floor((width - 0.4) / 0.115))
+  if (!is.null(p$labels$subtitle)) p$labels$subtitle <- wrap_text(p$labels$subtitle, floor((width - 0.4) / 0.085))
   ggplot2::ggsave(paste0(name, ".png"), p, width = width, height = height, dpi = 300, bg = "white")
   ggplot2::ggsave(paste0(name, ".pdf"), p, width = width, height = height, bg = "white")
   if (mqc) ggplot2::ggsave(paste0(name, "_mqc.png"), p, width = width, height = height, dpi = 110, bg = "white")

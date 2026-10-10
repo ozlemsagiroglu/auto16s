@@ -49,7 +49,7 @@ jobs:
         run: |
           for f in multiqc/multiqc_report.html phyloseq/phyloseq_object.rds phyloseq/asv_table.tsv \
                    primers/primers.tsv alpha_diversity/alpha_diversity.tsv beta_diversity/beta_diversity_tests.tsv \
-                   maaslin3/maaslin3_all_results.csv; do
+                   maaslin3/maaslin3_all_results.csv report/auto16s_report.html; do
             test -s "results/$f" || { echo "missing: $f"; exit 1; }
           done
           grep -qP "^status\tdetected" results/primers/primers.tsv

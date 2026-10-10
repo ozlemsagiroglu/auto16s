@@ -61,18 +61,31 @@ write_tsv(coords, "pcoa_bray_coords.tsv")
 dm <- as.matrix(d); write_tsv(data.frame(sample = rownames(dm), dm, check.names = FALSE), "bray_curtis_distance.tsv")
 cent <- aggregate(cbind(PCoA1, PCoA2) ~ group, coords, mean)
 
+# Each sample is joined to its group centroid (the distance betadisper tests); a dashed line
+# outlines the area covered by the samples of a group (convex hull, groups with >= 3 samples).
+spokes <- merge(coords, setNames(cent, c("group", "c1", "c2")), by = "group")
+hulls <- do.call(rbind, lapply(split(coords, coords$group), function(d) if (nrow(d) >= 3) d[chull(d$PCoA1, d$PCoA2), ] else NULL))
 p <- ggplot(coords, aes(PCoA1, PCoA2, colour = group)) +
   geom_hline(yintercept = 0, colour = "grey90") + geom_vline(xintercept = 0, colour = "grey90")
-if (all(table(grp) >= 4)) p <- p + stat_ellipse(aes(fill = group), geom = "polygon", alpha = 0.08, level = 0.95, show.legend = FALSE)
-p <- p + geom_point(size = 2.6, alpha = 0.9) +
-  geom_point(data = cent, shape = 4, size = 5, stroke = 1.5, show.legend = FALSE) +
-  scale_colour_manual(values = gpal) + scale_fill_manual(values = gpal) + coord_equal() +
+if (!is.null(hulls) && nrow(hulls))
+  p <- p + geom_polygon(data = hulls, aes(fill = group), alpha = 0.06, linetype = "dashed", linewidth = 0.5, show.legend = FALSE)
+p <- p +
+  geom_segment(data = spokes, aes(xend = c1, yend = c2), linewidth = 0.4, alpha = 0.5, show.legend = FALSE) +
+  geom_point(size = 2.6, alpha = 0.9) +
+  geom_point(data = cent, aes(fill = group), shape = 23, size = 4.2, colour = "white", stroke = 1, show.legend = FALSE) +
+  scale_colour_manual(values = gpal) + scale_fill_manual(values = gpal) +
   labs(title = "PCoA, Bray-Curtis",
-       subtitle = sprintf("PERMANOVA R2 = %.3f, p %s | betadisper p %s | x = group centroid",
+       subtitle = sprintf("PERMANOVA R2 = %.3f, p %s | betadisper p %s\nDiamond: group centroid; lines join each sample to it; dashed outline: area covered by the group",
                           perm_r2, fmt_p(perm_p), fmt_p(disp_p)),
        x = sprintf("PCoA1 (%.1f%%)", ve[1]), y = sprintf("PCoA2 (%.1f%%)", ve[2]), colour = gcol) +
   theme_amp()
-save_fig(p, "pcoa_bray", 8, 6.5, mqc = TRUE)
+# Equal axis scaling (distances are comparable in both directions); figure size follows the data's shape
+rx <- diff(range(coords$PCoA1)); ry <- diff(range(coords$PCoA2))
+ratio <- if (rx > 0) min(max(ry / rx, 0.45), 1.4) else 1
+p <- p + coord_equal(ratio = if (ry > 0 && rx > 0) ratio / (ry / rx) else 1)
+legend_w <- 0.075 * max(nchar(c(gcol, glev))) + 0.9
+panel_w <- 5.6
+save_fig(p, "pcoa_bray", panel_w + legend_w + 0.9, panel_w * ratio + 1.9, mqc = TRUE)
 
 # ---------- dispersion ----------
 disp <- data.frame(sample = sample_names(ps), group = grp, distance = bd_fit$distances)
@@ -84,6 +97,6 @@ p <- ggplot(disp, aes(group, distance, fill = group)) +
   labs(title = "Within-group dispersion (betadisper)", subtitle = sprintf("Distance to group centroid; permutest p %s", fmt_p(disp_p)),
        x = NULL, y = "Distance to centroid") + theme_amp() + theme(legend.position = "none") +
   x_text_fit(glev, (2 + 1.1 * length(glev)) / length(glev))
-save_fig(p, "betadisper_bray", 3 + 1.1 * length(glev), 4.8)
+save_fig(p, "betadisper_bray", 3 + 1.1 * length(glev), 4.8, mqc = TRUE)
 
 write_session("beta")

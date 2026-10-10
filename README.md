@@ -51,7 +51,8 @@ The only required input is a samplesheet.
 8. **Alpha diversity**: Observed, Shannon and Simpson, with Wilcoxon or Kruskal-Wallis tests (rarefied).
 9. **Beta diversity**: Bray-Curtis PCoA, PERMANOVA, betadisper and pairwise PERMANOVA ([vegan](https://github.com/vegandevs/vegan); rarefied).
 10. **Differential abundance and prevalence** at genus level ([MaAsLin 3](https://huttenhower.sph.harvard.edu/maaslin3/); all reads).
-11. **Report** ([MultiQC](https://multiqc.info/)): QC, warnings, all key figures and test results in one HTML file.
+11. **QC summary** ([MultiQC](https://multiqc.info/)): FastQC before and after filtering, primer detection and removal, DADA2 steps, warnings and the main figures.
+12. **Final report**: one HTML file that reads like a short study report: the samples analysed, a methods section written with the values and software versions of this run (ready to adapt for a paper), and the results with all key figures and tables. Every table and figure is also delivered as a separate file.
 
 ## Quick start
 
@@ -75,7 +76,7 @@ The only required input is a samplesheet.
    nextflow run ozlemsagiroglu/auto16s -profile docker --input samplesheet.csv --outdir results
    ```
 
-5. Open `results/multiqc/multiqc_report.html`. Read the **"DADA2 summary and warnings"** table first.
+5. Open `results/report/auto16s_report.html` for the samples, methods and results. For quality control, open `results/multiqc/multiqc_report.html` and read the **"DADA2 summary and warnings"** table first.
 
 Add `-resume` to rerun after a change; finished steps are reused. Add `-r v0.4.0` to run a fixed release.
 
@@ -96,7 +97,7 @@ cd containers/r-analysis && apptainer build auto16s-r.sif auto16s-r.def
 nextflow run ozlemsagiroglu/auto16s -profile singularity --r_container $PWD/auto16s-r.sif --input samplesheet.csv
 ```
 
-**Without any container or Conda**, the pipeline also runs on a machine where FastQC, MultiQC and R are installed. It needs R ≥ 4.4 with dada2, phyloseq, vegan, maaslin3 and ggplot2; the R packages can be installed with `Rscript containers/r-analysis/install_r_packages.R` (plus `BiocManager::install("dada2")`). Then run without `-profile`.
+**Without any container or Conda**, the pipeline also runs on a machine where FastQC, MultiQC and R are installed. It needs R ≥ 4.4 with dada2, phyloseq, vegan, maaslin3, ggplot2 and ggrepel; the R packages can be installed with `Rscript containers/r-analysis/install_r_packages.R` (plus `BiocManager::install("dada2")`). Then run without `-profile`.
 
 ## Input
 
@@ -263,7 +264,8 @@ All results are in `--outdir`. Besides the figures, every number behind a figure
 
 | Folder | Content |
 |---|---|
-| `multiqc/` | `multiqc_report.html`: everything in one report |
+| `report/` | `auto16s_report.html`: final report (samples, methods, results); open it first |
+| `multiqc/` | `multiqc_report.html`: QC summary (FastQC, primers, DADA2 steps, warnings) |
 | `phyloseq/` | `phyloseq_object.rds` (all reads), `phyloseq_object_rarefied.rds`, ASV tables (raw and rarefied), taxonomy, ASV sequences (FASTA), sample metadata, depths, rarefaction curves |
 | `composition/` | Counts and relative abundances per phylum, family and genus; bar plots; genus heatmap |
 | `alpha_diversity/` | Values per sample, tests, figure |

@@ -100,11 +100,10 @@ gpal <- group_palette(sort(unique(md[[gcol]])))
 summ$sample <- factor(summ$sample, levels = summ$sample[order(summ$reads)])
 p <- ggplot(summ, aes(reads, sample, fill = group)) + geom_col(width = 0.75) +
   geom_vline(xintercept = depth, linetype = 2) +
-  annotate("text", x = depth, y = 0.6, label = paste0(" depth = ", format(depth, big.mark = ",")),
-           hjust = 0, vjust = 0, size = 3.2) +
   scale_fill_manual(values = gpal) + scale_x_continuous(labels = scales::comma, expand = expansion(c(0, 0.05))) +
   labs(title = "Reads per sample after taxonomic filtering",
-       subtitle = if (length(excluded)) paste("Below the depth, excluded from alpha/beta:", paste(excluded, collapse = ", ")) else "All samples kept for alpha/beta",
+       subtitle = paste0(sprintf("Dashed line: rarefaction depth (%s reads). ", format(depth, big.mark = ",")),
+                         if (length(excluded)) paste("Below it, excluded from alpha/beta:", paste(excluded, collapse = ", ")) else "All samples kept for alpha/beta."),
        x = "Reads", y = NULL, fill = gcol) + theme_amp() +
   theme(axis.text.y = element_text(size = if (nrow(summ) > 60) 5 else 8))
 save_fig(p, "sample_depths_plot", 8, max(4, 0.16 * nrow(summ) + 2), mqc = TRUE)

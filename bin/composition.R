@@ -43,8 +43,10 @@ for (lvl in levels) {
   sample_order <- colnames(show)[order(grp[colnames(show)], -show[top[1], ])]
   long$sample <- factor(long$sample, levels = sample_order)
 
+  fig_w <- max(8, 0.18 * ncol(show) + 4)
+  strip_chars <- strip_width_chars(fig_w - (0.075 * max(nchar(names(pal))) + 1.8), table(grp[colnames(show)]))
   p <- ggplot(long, aes(sample, abundance, fill = taxon)) + geom_col(width = 0.92) +
-    facet_grid(~ group, scales = "free_x", space = "free_x") +
+    facet_grid(~ group, scales = "free_x", space = "free_x", labeller = wrap_labeller(strip_chars)) +
     scale_fill_manual(values = pal, breaks = names(pal)) +
     scale_y_continuous(labels = scales::percent, expand = c(0, 0)) +
     labs(title = sprintf("%s composition per sample", lvl),
@@ -53,7 +55,7 @@ for (lvl in levels) {
     theme_amp() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1,
                                                    size = if (ncol(show) > 60) 5 else 8),
                         panel.spacing = unit(0.3, "lines"))
-  save_fig(p, paste0(tolower(lvl), "_barplot_samples"), max(8, 0.18 * ncol(show) + 4), 6,
+  save_fig(p, paste0(tolower(lvl), "_barplot_samples"), fig_w, 6,
            mqc = lvl == "Genus")
 
   gm <- aggregate(abundance ~ group + taxon, long, mean)
@@ -79,14 +81,16 @@ long <- data.frame(taxon = rep(rownames(hm), ncol(hm)), sample = rep(colnames(hm
 long$group  <- grp[long$sample]
 long$taxon  <- factor(long$taxon, levels = taxon_order)
 long$sample <- factor(long$sample, levels = sample_order)
+hm_w <- max(8, 0.18 * ncol(hm) + 5)
 p <- ggplot(long, aes(sample, taxon, fill = value)) + geom_tile() +
-  facet_grid(~ group, scales = "free_x", space = "free_x") +
+  facet_grid(~ group, scales = "free_x", space = "free_x",
+             labeller = wrap_labeller(strip_width_chars(hm_w - 0.075 * max(nchar(rownames(hm))) - 2.3, table(grp[colnames(hm)])))) +
   scale_fill_viridis_c(name = "Relative\nabundance (%)", breaks = -2:2, labels = c("0.01", "0.1", "1", "10", "100"),
                        limits = c(-2, 2), oob = scales::squish) +
   labs(title = sprintf("Top %d genera", nrow(hm)), subtitle = "log10 scale; genera clustered by abundance profile, samples clustered within group",
        x = NULL, y = NULL) +
   theme_amp() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = if (ncol(hm) > 60) 5 else 8),
                       panel.grid = element_blank(), panel.spacing = unit(0.3, "lines"))
-save_fig(p, "genus_heatmap", max(8, 0.18 * ncol(hm) + 5), 7.5, mqc = TRUE)
+save_fig(p, "genus_heatmap", hm_w, 7.5, mqc = TRUE)
 
 write_session("composition")

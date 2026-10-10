@@ -2,11 +2,12 @@
 
 All paths are relative to `--outdir` (default `results/`). Figures are saved as PNG (300 dpi) and PDF with the same name; only the PNG is listed. Tables are tab-separated (`.tsv`) unless they are `.csv`.
 
-## Start here: `multiqc/`
+## Start here: `report/` and `multiqc/`
 
 | File | Content |
 |---|---|
-| `multiqc_report.html` | One self-contained report: DADA2 summary and warnings, primer detection, FastQC, read tracking, filtering, depths, and all key figures and tests |
+| `report/auto16s_report.html` | Final report: summary of the main results, the samples, a methods section written with the values and software versions of this run, and the results with figures and tables. Self-contained (figures embedded); print to PDF from the browser if needed |
+| `multiqc/multiqc_report.html` | Self-contained summary report: DADA2 summary and warnings, primer detection and removal check, FastQC before and after filtering, read tracking, merged sequence length, taxonomic filtering, depths, composition, alpha and beta diversity, MaAsLin 3 results. The complete tables and PDF figures are in the other folders |
 | `multiqc_report_data/` | The report's data in machine-readable form |
 
 ## `primers/`

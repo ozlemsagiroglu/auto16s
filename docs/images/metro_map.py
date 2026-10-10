@@ -3,131 +3,166 @@
 Writes auto16s_metro_map.svg (and .png if cairosvg is installed) next to this script."""
 import os
 
-W, H = 2360, 800
-FONT = "Helvetica, Arial, 'DejaVu Sans', sans-serif"
-C = {"qc": "#0072B2", "asv": "#009E73", "tax": "#E69F00", "div": "#CC79A7", "da": "#D55E00", "rep": "#8C8C8C"}
-LW = 12
-Y = 340          # main line
-YR = 640         # report line
+W, H = 2400, 980
+FONT = "'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif"
+C = {"qc": "#0072B2", "asv": "#009E73", "tax": "#E69F00", "div": "#CC79A7", "da": "#D55E00", "rep": "#6B7280"}
+INK, MUTED, BAND = "#111827", "#6B7280", "#F3F4F6"
+LW = 14
+Y = 430          # main line
+YR = 800         # report line
 out = []
 add = out.append
 
 
-def text(x, y, s, size=15, weight="normal", anchor="middle", fill="#222", extra=""):
+def text(x, y, s, size=15, weight="normal", anchor="middle", fill=INK, extra=""):
     add(f'<text x="{x}" y="{y}" font-family="{FONT}" font-size="{size}" font-weight="{weight}" '
         f'text-anchor="{anchor}" fill="{fill}" {extra}>{s}</text>')
 
 
-def line(pts, color, width=LW, dash=None):
-    d = "M " + " L ".join(f"{x},{y}" for x, y in pts)
+def line(pts, color, width=LW, dash=None, opacity=1, r=36):
+    """polyline with rounded corners (quadratic curve of radius ~r at every bend)"""
+    import math
+    d = f"M {pts[0][0]},{pts[0][1]}"
+    for i in range(1, len(pts) - 1):
+        (x0, y0), (x1, y1), (x2, y2) = pts[i - 1], pts[i], pts[i + 1]
+        l1, l2 = math.hypot(x1 - x0, y1 - y0), math.hypot(x2 - x1, y2 - y1)
+        rr = min(r, l1 / 2, l2 / 2)
+        ax, ay = x1 - (x1 - x0) / l1 * rr, y1 - (y1 - y0) / l1 * rr
+        bx, by = x1 + (x2 - x1) / l2 * rr, y1 + (y2 - y1) / l2 * rr
+        d += f" L {ax:.1f},{ay:.1f} Q {x1},{y1} {bx:.1f},{by:.1f}"
+    d += f" L {pts[-1][0]},{pts[-1][1]}"
     da = f' stroke-dasharray="{dash}"' if dash else ""
     add(f'<path d="{d}" fill="none" stroke="{color}" stroke-width="{width}" stroke-linecap="round" '
-        f'stroke-linejoin="round"{da}/>')
+        f'stroke-linejoin="round" stroke-opacity="{opacity}"{da}/>')
 
 
-def station(x, y, r=14):
-    add(f'<circle cx="{x}" cy="{y}" r="{r}" fill="white" stroke="#1a1a1a" stroke-width="4"/>')
+def station(x, y, color, r=13):
+    add(f'<circle cx="{x}" cy="{y}" r="{r + 5}" fill="white"/>')
+    add(f'<circle cx="{x}" cy="{y}" r="{r}" fill="white" stroke="{color}" stroke-width="6"/>')
 
 
-def label(x, y, title, sub, where="below"):
-    """title + grey sub-lines, fully clear of the line"""
+def label(x, y, title, sub, where="below", anchor="middle"):
     if where == "below":
-        text(x, y + 46, title, 17, "bold")
+        text(x, y + 50, title, 18, "bold", anchor)
         for i, s in enumerate(sub):
-            text(x, y + 68 + 19 * i, s, 14, "normal", "middle", "#555")
+            text(x, y + 73 + 20 * i, s, 14.5, "normal", anchor, MUTED)
     else:
         n = len(sub)
-        text(x, y - 34 - 19 * n, title, 17, "bold")
+        text(x, y - 38 - 20 * n, title, 18, "bold", anchor)
         for i, s in enumerate(sub):
-            text(x, y - 30 - 19 * (n - 1 - i), s, 14, "normal", "middle", "#555")
+            text(x, y - 34 - 20 * (n - 1 - i), s, 14.5, "normal", anchor, MUTED)
+
+
+def band(x0, x1, num, title, color):
+    add(f'<rect x="{x0}" y="150" width="{x1 - x0}" height="{YR - 150 - 60}" rx="22" fill="{BAND}"/>')
+    add(f'<rect x="{x0 + 22}" y="150" width="{x1 - x0 - 44}" height="5" rx="2.5" fill="{color}"/>')
+    text(x0 + 22, 192, num, 15, "bold", "start", color)
+    text(x0 + 42, 192, title, 15, "bold", "start", INK)
+
+
+def doc_icon(x, y, color, tag):
+    add(f'<path d="M {x-24},{y-32} h 34 l 14,14 v 50 h -48 z" fill="white" stroke="{color}" stroke-width="3.5" stroke-linejoin="round"/>')
+    add(f'<path d="M {x+10},{y-32} v 14 h 14" fill="none" stroke="{color}" stroke-width="3.5" stroke-linejoin="round"/>')
+    text(x, y + 9, tag, 11, "bold", "middle", color)
 
 
 # ---------------- background, title ----------------
 add(f'<rect width="{W}" height="{H}" fill="white"/>')
-text(60, 72, "auto16s", 36, "bold", "start", "#111")
-text(60, 104, "Paired-end 16S rRNA amplicon reads  →  ASVs  →  taxonomy  →  diversity and differential abundance  →  one report",
-     17, "normal", "start", "#555")
+text(60, 80, "auto16s", 42, "bold", "start")
+text(60, 118, "16S rRNA amplicon analysis from raw reads to a written report  ·  one fixed, literature-standard workflow  ·  "
+     "primers, truncation and rarefaction depth chosen from the data", 16, "normal", "start", MUTED)
 
 # ---------------- coordinates ----------------
-X = {"in": 110, "fastqc": 280, "pdet": 460, "ptrim": 640, "filt": 840, "err": 1020, "merge": 1200,
-     "tax": 1390, "ps": 1570}
-SPLIT = X["ps"] + 110            # branches leave the main line here
-BX = SPLIT + 120                 # ... and are horizontal from here
-YB = {"comp": 178, "da": 268, "rare": 470}
-B = {"comp": 1880, "da": 1880, "rare": 1850, "alpha": 2010, "beta": 2170}
-XR = 2290                        # report station
+X = {"in": 120, "fastqc": 290, "pdet": 470, "ptrim": 650,
+     "filt": 860, "err": 1040, "merge": 1220,
+     "tax": 1430, "ps": 1600}
+SPLIT = X["ps"] + 100
+B = {"comp": 1930, "da": 1930, "rare": 1915, "alpha": 2050, "beta": 2210}
+YB = {"comp": Y - 140, "da": Y, "rare": Y + 140}
+XR1, XR2 = 1530, 2230        # report stations: QC summary, final report
+XC = 2330                    # collector of the result lines
 
-# DADA2 box (behind everything)
-add(f'<rect x="{X["filt"]-95}" y="{Y-150}" width="{X["merge"]-X["filt"]+190}" height="290" rx="20" '
-    f'fill="{C["asv"]}" fill-opacity="0.06" stroke="{C["asv"]}" stroke-width="2" stroke-dasharray="7 6"/>')
-text(X["filt"] - 75, Y - 120, "DADA2", 18, "bold", "start", C["asv"])
+# stage bands (behind everything)
+band(40, 740, "1", "Quality control and primers", C["qc"])
+band(760, 1320, "2", "ASV inference (DADA2)", C["asv"])
+band(1340, 1700, "3", "Taxonomy", C["tax"])
+band(1720, 2370, "4", "Statistics and figures", C["div"])
 
-# ---------------- report connectors (drawn first, under the lines) ----------------
-line([(X["fastqc"], Y), (X["fastqc"], YR), (XR, YR)], C["rep"], 8)
-line([(X["err"], Y), (X["err"], YR)], C["rep"], 4, "1 10")
-YF = 530                         # FastQC after filtering
-line([(X["filt"], YF), (X["filt"], YR)], C["rep"], 4, "1 10")
-line([(B["comp"] + 120, YB["comp"]), (XR, YB["comp"]), (XR, YR)], C["rep"], 4, "1 10")
-line([(B["da"] + 120, YB["da"]), (XR, YB["da"])], C["rep"], 4, "1 10")
-line([(B["beta"], YB["rare"]), (XR, YB["rare"])], C["rep"], 4, "1 10")
+# ---------------- report connectors (under the lines) ----------------
+line([(X["fastqc"], Y), (X["fastqc"], YR), (XR2, YR)], C["rep"], 8, opacity=0.9)
+line([(X["merge"], Y), (X["merge"], YR)], C["rep"], 3.5, "1 10")
+YF = 600                     # FastQC after filtering (spur below the filter station)
+line([(X["filt"], YF), (X["filt"], YR)], C["rep"], 3.5, "1 10")
+line([(B["comp"] + 130, YB["comp"]), (XC, YB["comp"]), (XC, YR), (XR2, YR)], C["rep"], 3.5, "1 10")
+line([(B["da"] + 130, YB["da"]), (XC, YB["da"])], C["rep"], 3.5, "1 10")
+line([(B["beta"] + 40, YB["rare"]), (XC, YB["rare"])], C["rep"], 3.5, "1 10")
 
 # ---------------- metro lines ----------------
-line([(X["in"], Y), (X["ptrim"] + 90, Y)], C["qc"])
-line([(X["ptrim"] + 90, Y), (X["merge"] + 95, Y)], C["asv"])
-line([(X["merge"] + 95, Y), (SPLIT, Y)], C["tax"])
-line([(X["filt"], Y), (X["filt"], YF)], C["qc"], 8)
-line([(SPLIT, Y), (BX, YB["comp"]), (B["comp"] + 120, YB["comp"])], C["tax"])
-line([(SPLIT, Y), (BX, YB["da"]), (B["da"] + 120, YB["da"])], C["da"])
-line([(SPLIT, Y), (BX, YB["rare"]), (B["beta"], YB["rare"])], C["div"])
+line([(X["in"], Y), (X["ptrim"] + 100, Y)], C["qc"])
+line([(X["ptrim"] + 100, Y), (X["merge"] + 110, Y)], C["asv"])
+# 45-degree branches with rounded bends, drawn under the end of the main line
+line([(SPLIT - 30, Y), (SPLIT + 20, Y), (SPLIT + 160, YB["rare"]), (B["beta"] + 40, YB["rare"])], C["div"], r=60)
+line([(SPLIT - 30, Y), (SPLIT + 20, Y), (SPLIT + 160, YB["comp"]), (B["comp"] + 130, YB["comp"])], C["tax"], r=60)
+line([(SPLIT - 30, Y), (B["da"] + 130, YB["da"])], C["da"])
+line([(X["merge"] + 110, Y), (SPLIT, Y)], C["tax"])
+line([(X["filt"], Y), (X["filt"], YF)], C["qc"], 9)
 
 # ---------------- input ----------------
-x = X["in"]
-add(f'<path d="M {x-19},{Y-26} h 27 l 11,11 v 41 h -38 z" fill="white" stroke="{C["qc"]}" stroke-width="3"/>')
-add(f'<path d="M {x+8},{Y-26} v 11 h 11" fill="none" stroke="{C["qc"]}" stroke-width="3"/>')
-text(x, Y + 7, "fastq", 11, "bold", "middle", C["qc"])
-label(x, Y, "Raw reads", ["R1 / R2", "+ samplesheet"], "below")
+doc_icon(X["in"], Y, C["qc"], "fastq")
+text(X["in"], Y + 66, "Raw reads", 18, "bold")
+text(X["in"], Y + 88, "R1 / R2 + samplesheet", 14.5, "normal", "middle", MUTED)
 
 # ---------------- main stations ----------------
 main = [
-    ("fastqc", "FastQC", ["raw reads"], "above"),
-    ("pdet", "Primer detection", ["library of common", "16S primers"], "below"),
-    ("ptrim", "Primer removal", ["per read, then checked;", "spacers, reverse pairs"], "above"),
-    ("filt", "Filter + truncate", ["truncLen (automatic)", "maxEE = 2"], "above"),
-    ("err", "Error model + denoise", ["learnErrors, dada", "R1 and R2 separately"], "above"),
-    ("merge", "Merge + chimeras", ["mergePairs", "removeBimeraDenovo"], "below"),
-    ("tax", "Taxonomy", ["SILVA 138.1", "assignTaxonomy"], "above"),
-    ("ps", "phyloseq", ["drop Eukaryota, chloroplasts,", "mitochondria"], "below"),
+    ("fastqc", C["qc"], "FastQC", ["raw reads"], "above"),
+    ("pdet", C["qc"], "Primer detection", ["library of common", "16S primers"], "below"),
+    ("ptrim", C["qc"], "Primer removal", ["per read, then checked"], "above"),
+    ("filt", C["asv"], "Filter + truncate", ["truncLen keeping most reads,", "maxEE = 2"], "above"),
+    ("err", C["asv"], "Denoise", ["error models R1 / R2"], "below"),
+    ("merge", C["asv"], "Merge + chimeras", ["mergePairs,", "removeBimeraDenovo"], "above"),
+    ("tax", C["tax"], "Taxonomy", ["SILVA 138.1"], "below"),
+    ("ps", C["tax"], "phyloseq", ["drop chloroplasts,", "mitochondria"], "above"),
 ]
-for k, t, sub, where in main:
-    station(X[k], Y)
+for k, col, t, sub, where in main:
+    station(X[k], Y, col)
     label(X[k], Y, t, sub, where)
+station(X["filt"], YF, C["qc"], 11)
+text(X["filt"] + 28, YF - 2, "FastQC", 17, "bold", "start")
+text(X["filt"] + 28, YF + 18, "filtered reads", 14.5, "normal", "start", MUTED)
 
 # ---------------- branch stations ----------------
-station(X["filt"], YF)
-text(X["filt"] + 26, YF - 3, "FastQC", 17, "bold", "start")
-text(X["filt"] + 26, YF + 17, "filtered reads", 14, "normal", "start", "#555")
-station(B["comp"], YB["comp"]); label(B["comp"], YB["comp"], "Composition", ["bar plots (phylum, family, genus),", "genus heatmap (all reads)"], "above")
-station(B["da"], YB["da"]); label(B["da"], YB["da"], "Differential abundance", ["MaAsLin 3: abundance + prevalence,", "genus level (all reads)"], "below")
-station(B["rare"], YB["rare"]); label(B["rare"], YB["rare"], "Rarefaction", ["automatic depth"], "below")
-station(B["alpha"], YB["rare"]); label(B["alpha"], YB["rare"], "Alpha diversity", ["Observed, Shannon,", "Simpson + tests"], "below")
-station(B["beta"], YB["rare"]); label(B["beta"], YB["rare"], "Beta diversity", ["Bray-Curtis PCoA,", "PERMANOVA, betadisper"], "below")
+station(B["comp"], YB["comp"], C["tax"])
+text(B["comp"], YB["comp"] - 52, "Composition", 18, "bold")
+text(B["comp"], YB["comp"] - 30, "bar plots, heatmap", 14.5, "normal", "middle", MUTED)
+station(B["da"], YB["da"], C["da"])
+text(B["da"], YB["da"] - 52, "Differential abundance", 18, "bold")
+text(B["da"], YB["da"] - 30, "MaAsLin 3: abundance + prevalence", 14.5, "normal", "middle", MUTED)
+station(B["rare"], YB["rare"], C["div"])
+label(B["rare"], YB["rare"], "Rarefaction", ["automatic depth"], "below")
+station(B["alpha"], YB["rare"], C["div"])
+label(B["alpha"], YB["rare"], "Alpha", ["Shannon, Simpson"], "below")
+station(B["beta"], YB["rare"], C["div"])
+label(B["beta"], YB["rare"], "Beta", ["PCoA, PERMANOVA"], "below")
 
-
-# ---------------- report ----------------
-add(f'<rect x="{XR-38}" y="{YR-26}" width="76" height="52" rx="11" fill="white" stroke="#1a1a1a" stroke-width="4"/>')
-text(XR, YR + 6, "HTML", 14, "bold")
-text(XR - 50, YR + 58, "MultiQC report", 17, "bold", "end")
-text(XR - 50, YR + 79, "QC, warnings, all figures and statistics", 14, "normal", "end", "#555")
+# ---------------- reports ----------------
+add(f'<rect x="{XR1 - 34}" y="{YR - 24}" width="68" height="48" rx="12" fill="white" stroke="{C["rep"]}" stroke-width="5"/>')
+text(XR1, YR + 6, "QC", 15, "bold", "middle", C["rep"])
+text(XR1, YR + 54, "QC summary (MultiQC)", 17, "bold")
+text(XR1, YR + 75, "FastQC, primers, DADA2 steps", 14.5, "normal", "middle", MUTED)
+add(f'<circle cx="{XR2}" cy="{YR}" r="44" fill="white"/>')
+doc_icon(XR2, YR, INK, "HTML")
+text(XR2 - 56, YR + 54, "Final report", 19, "bold", "end")
+text(XR2 - 56, YR + 76, "samples · methods with the values used · results", 14.5, "normal", "end", MUTED)
 
 # ---------------- legend ----------------
-lx, ly = 60, 755
-items = [("qc", "Read QC, primers"), ("asv", "ASV inference"), ("tax", "Taxonomy, phyloseq, composition"),
-         ("da", "Differential abundance"), ("div", "Diversity (rarefied)"), ("rep", "Report")]
+lx, ly = 60, 940
+items = [("qc", "Read QC, primers"), ("asv", "ASV inference"), ("tax", "Taxonomy, composition"),
+         ("da", "Differential abundance"), ("div", "Diversity (rarefied)"), ("rep", "Reports")]
 x = lx
 for k, s in items:
-    line([(x, ly), (x + 42, ly)], C[k], 10)
-    text(x + 56, ly + 5, s, 15, "normal", "start", "#333")
-    x += 56 + 9.2 * len(s) + 46
+    line([(x, ly), (x + 40, ly)], C[k], 10)
+    text(x + 54, ly + 5, s, 15, "normal", "start", "#374151")
+    x += 54 + 8.6 * len(s) + 50
 
 svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">\n'
        + "\n".join(out) + "\n</svg>\n")

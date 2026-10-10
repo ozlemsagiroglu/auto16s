@@ -6,7 +6,7 @@
 .script <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
 source(file.path(dirname(normalizePath(.script)), "utils.R"))
 opt <- parse_args()
-suppressPackageStartupMessages({ library(phyloseq); library(maaslin3); library(ggplot2) })
+suppressPackageStartupMessages({ library(phyloseq); library(maaslin3); library(ggplot2); library(ggrepel) })
 
 ps   <- readRDS(opt$ps)
 gcol <- opt$group_col
@@ -76,20 +76,42 @@ ok <- res[is.na(res$error) & !is.na(res$qval_individual), ]
 ok$direction <- factor(ifelse(!ok$significant, "n.s.", ifelse(ok$coef > 0, "higher", "lower")),
                        levels = c("higher", "lower", "n.s."))
 ok$panel <- factor(model_lab[ok$model], levels = model_lab)
-lab <- head(ok[ok$significant, ], 20)
+sig_ok <- ok[ok$significant, ]
+lab <- do.call(rbind, lapply(split(sig_ok, sig_ok$model), function(d) head(d[order(d$qval_individual), ], 10)))   # 10 lowest q per panel
+# label anchor: the outer edge of each panel (free x scales -> per model)
+side <- function(d, dir) {
+  if (is.null(d) || !nrow(d)) return(NULL)
+  d <- d[sign(d$coef) == dir, , drop = FALSE]
+  if (!nrow(d)) return(NULL)
+  rng <- tapply(ok$coef, ok$model, function(v) range(v, na.rm = TRUE))
+  d$x_lab <- vapply(seq_len(nrow(d)), function(i) { r <- rng[[d$model[i]]]; w <- max(diff(r), 1e-6)
+                                                    if (dir < 0) r[1] - 0.6 * w else r[2] + 0.6 * w }, 0)
+  d
+}
+lab_lo <- side(lab, -1); lab_hi <- side(lab, 1)
 p <- ggplot(ok, aes(coef, -log10(qval_individual), colour = direction)) +
   geom_hline(yintercept = -log10(qcut), linetype = 2, colour = "grey50") + geom_vline(xintercept = 0, colour = "grey85") +
   geom_point(size = 2, alpha = 0.8) +
-  geom_text(data = lab, aes(label = genus), size = 2.8, vjust = -0.7, show.legend = FALSE, check_overlap = TRUE) +
+  # labels stacked at the panel sides (lower: left, higher: right), each joined to its point
+  { if (!is.null(lab_lo) && nrow(lab_lo)) geom_text_repel(data = lab_lo, aes(label = genus), nudge_x = lab_lo$x_lab - lab_lo$coef, hjust = 0, direction = "y",
+                                                         size = 2.6, show.legend = FALSE, seed = 1, max.overlaps = Inf,
+                                                         box.padding = 0.15, min.segment.length = 0, segment.colour = "grey65",
+                                                         segment.size = 0.3, xlim = c(-Inf, Inf)) } +
+  { if (!is.null(lab_hi) && nrow(lab_hi)) geom_text_repel(data = lab_hi, aes(label = genus), nudge_x = lab_hi$x_lab - lab_hi$coef, hjust = 1, direction = "y",
+                                                         size = 2.6, show.legend = FALSE, seed = 1, max.overlaps = Inf,
+                                                         box.padding = 0.15, min.segment.length = 0, segment.colour = "grey65",
+                                                         segment.size = 0.3, xlim = c(-Inf, Inf)) } +
+  scale_y_continuous(expand = expansion(mult = c(0.03, 0.08))) +
+  { labs_all <- rbind(lab_lo, lab_hi); if (!is.null(labs_all) && nrow(labs_all)) geom_blank(data = labs_all, aes(x = x_lab)) } +
   scale_colour_manual(values = c(higher = "#D55E00", lower = "#0072B2", `n.s.` = "grey70"), drop = FALSE,
                       labels = c(higher = "higher than reference", lower = "lower than reference", `n.s.` = "not significant")) +
-  scale_x_continuous(expand = expansion(mult = 0.2)) +
+  scale_x_continuous(expand = expansion(mult = 0.05)) +
   facet_wrap(~ panel, scales = "free_x") +
   labs(title = "Differential abundance and prevalence (MaAsLin 3, genus level)",
        subtitle = sprintf("%s | reference: %s | dashed line: q = %g", unique(ok$comparison)[1], ref, qcut),
        x = "Coefficient", y = "-log10(q)", colour = NULL) +
-  theme_amp() + theme(legend.position = "bottom")
-save_fig(p, "maaslin3_volcano", 10, 6)
+  theme_amp() + theme(legend.position = "bottom", panel.spacing = unit(1.2, "lines"))
+save_fig(p, "maaslin3_volcano", 10, 6, mqc = TRUE)
 
 if (nrow(sig)) {
   # ---------- coefficient plot ----------
@@ -102,6 +124,7 @@ if (nrow(sig)) {
     geom_point(size = 2.5) +
     scale_colour_manual(values = c(`TRUE` = "#D55E00", `FALSE` = "#0072B2"), guide = "none") +
     facet_wrap(~ panel, scales = "free_x") +
+    scale_y_discrete(labels = function(x) wrap_text(x, 40)) +
     labs(title = "Significant genera",
          subtitle = sprintf("Coefficient +/- SE; positive = higher than %s (q < %g)", ref, qcut),
          x = "MaAsLin 3 coefficient", y = NULL) + theme_amp()
@@ -122,12 +145,12 @@ if (nrow(sig)) {
       geom_point(aes(colour = group), position = position_jitter(width = 0.12, seed = 1), size = 1.4) +
       scale_y_log10(labels = function(x) format(x, scientific = FALSE, drop0trailing = TRUE)) +
       scale_fill_manual(values = group_palette(levels(grp))) + scale_colour_manual(values = group_palette(levels(grp))) +
-      facet_wrap(~ genus, scales = "free_y", ncol = 4) +
+      facet_wrap(~ genus, scales = "free_y", ncol = 4, labeller = wrap_labeller(24)) +
       labs(title = "Abundance hits: relative abundance where present",
            subtitle = sprintf("%d genera with the lowest q-value (max. 12); samples without the genus are not shown; log scale", length(fa)),
            x = NULL, y = "Relative abundance (%)") +
       theme_amp() + theme(legend.position = "none", axis.text.x = element_text(angle = 30, hjust = 1))
-    save_fig(p, "maaslin3_abundance_boxplots", 11, 2.6 * ceiling(length(fa) / 4) + 1.5, mqc = TRUE)
+    save_fig(p, "maaslin3_abundance_boxplots", 11, 2.8 * ceiling(length(fa) / 4) + 1.6, mqc = TRUE)
   }
 
   # ---------- prevalence hits: share of samples with the genus ----------
@@ -144,12 +167,12 @@ if (nrow(sig)) {
       geom_text(aes(label = sprintf("%.0f%%", prevalence)), vjust = -0.4, size = 3) +
       scale_fill_manual(values = group_palette(levels(grp))) +
       scale_y_continuous(limits = c(0, 110), breaks = seq(0, 100, 25)) +
-      facet_wrap(~ genus, ncol = 4) +
+      facet_wrap(~ genus, ncol = 4, labeller = wrap_labeller(24)) +
       labs(title = "Prevalence hits: share of samples in which the genus is present",
            subtitle = sprintf("%d genera with the lowest q-value (max. 12)", length(fp)),
            x = NULL, y = "Samples with the genus (%)") +
       theme_amp() + theme(legend.position = "none", axis.text.x = element_text(angle = 30, hjust = 1))
-    save_fig(p, "maaslin3_prevalence_bars", 11, 2.6 * ceiling(length(fp) / 4) + 1.5, mqc = TRUE)
+    save_fig(p, "maaslin3_prevalence_bars", 11, 2.8 * ceiling(length(fp) / 4) + 1.6, mqc = TRUE)
   }
 }
 

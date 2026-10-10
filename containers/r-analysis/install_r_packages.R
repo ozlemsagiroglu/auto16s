@@ -3,9 +3,9 @@
 #   Rscript containers/r-analysis/install_r_packages.R
 repos <- "https://cloud.r-project.org"
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager", repos = repos)
-install.packages(c("vegan", "ggplot2", "scales"), repos = repos)
+install.packages(c("vegan", "ggplot2", "scales", "ggrepel"), repos = repos)
 BiocManager::install(c("phyloseq", "maaslin3"), ask = FALSE, update = FALSE)
-for (p in c("phyloseq", "maaslin3", "vegan", "ggplot2", "scales")) {
+for (p in c("phyloseq", "maaslin3", "vegan", "ggplot2", "scales", "ggrepel")) {
   if (!requireNamespace(p, quietly = TRUE)) stop("Package not installed: ", p)
   message(p, " ", as.character(packageVersion(p)))
 }

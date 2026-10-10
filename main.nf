@@ -23,6 +23,7 @@ include { COMPOSITION     } from './modules/local/composition'
 include { ALPHA_DIVERSITY } from './modules/local/alpha_diversity'
 include { BETA_DIVERSITY  } from './modules/local/beta_diversity'
 include { MAASLIN3        } from './modules/local/maaslin3'
+include { FINAL_REPORT    } from './modules/local/final_report'
 include { MULTIQC         } from './modules/local/multiqc'
 
 def helpMessage() {
@@ -183,7 +184,7 @@ workflow {
         draftSamplesheet(file(params.input))
     } else {
         def sheet = readSamplesheet(params.input)
-        log.info "Results will be written to ${params.outdir}/; the report will be ${params.outdir}/multiqc/multiqc_report.html"
+        log.info "Results will be written to ${params.outdir}/; the report will be ${params.outdir}/report/auto16s_report.html"
         ch_reads = channel.fromList(sheet[0])
         ch_sheet = channel.value(sheet[1])
         ch_silva = channel.value(file(params.silva_db, checkIfExists: true))
@@ -211,7 +212,7 @@ workflow {
         BETA_DIVERSITY(PHYLOSEQ_BUILD.out.ps_rare)
         MAASLIN3(PHYLOSEQ_BUILD.out.ps)
 
-        // one report
+        // QC summary report
         ch_mqc = FASTQC_RAW.out.zip.map { _meta, z -> z }.flatten()
             .mix(FASTQC_FILTERED.out.zip.map { _meta, z -> z }.flatten())
             .mix(PRIMER_DETECT.out.mqc.flatten(), DADA2.out.mqc.flatten(), PHYLOSEQ_BUILD.out.mqc.flatten(),
@@ -219,6 +220,21 @@ workflow {
                  MAASLIN3.out.mqc.flatten())
             .collect()
         MULTIQC(ch_mqc, file("${projectDir}/assets/multiqc_config.yml", checkIfExists: true))
+
+        // final report: samples, methods with the values of this run, results
+        ch_report = PRIMER_DETECT.out.primers
+            .mix(PRIMER_DETECT.out.plots.flatten(), PRIMER_TRIM.out.stats,
+                 DADA2.out.tracking, DADA2.out.truncation, DADA2.out.plots.flatten(), DADA2.out.session,
+                 PHYLOSEQ_BUILD.out.tables.flatten(), PHYLOSEQ_BUILD.out.plots.flatten(),
+                 COMPOSITION.out.tables.flatten(), COMPOSITION.out.plots.flatten(),
+                 ALPHA_DIVERSITY.out.tables.flatten(), ALPHA_DIVERSITY.out.plots.flatten(),
+                 BETA_DIVERSITY.out.tables.flatten(), BETA_DIVERSITY.out.plots.flatten(),
+                 MAASLIN3.out.tables.flatten(), MAASLIN3.out.plots.flatten(),
+                 FASTQC_RAW.out.zip.map { _meta, z -> z }.flatten().first(),
+                 MULTIQC.out.data.map { d -> d.resolve('multiqc_data.json') })
+            .filter { f -> f.name.endsWith('.png') || f.name.endsWith('.tsv') || f.name.endsWith('.csv') || f.name.endsWith('.txt') || f.name.endsWith('.zip') || f.name.endsWith('.json') }
+            .collect()
+        FINAL_REPORT(ch_report, ch_sheet)
     }
 
 }

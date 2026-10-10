@@ -41,6 +41,8 @@ custom_data:
   genus_heatmap:            { section_name: "Composition: genus heatmap" }
   alpha_diversity:          { section_name: "Alpha diversity" }
   pcoa_bray:                { section_name: "Beta diversity: PCoA (Bray-Curtis)" }
+  betadisper_bray:          { section_name: "Beta diversity: within-group dispersion (betadisper)" }
+  maaslin3_volcano:             { section_name: "Differential abundance: volcano plot" }
   maaslin3_coefficients:        { section_name: "Differential abundance: significant genera" }
   maaslin3_abundance_boxplots:  { section_name: "Differential abundance: abundance hits" }
   maaslin3_prevalence_bars:     { section_name: "Differential abundance: prevalence hits" }
@@ -66,8 +68,10 @@ report_section_order:
   alpha_tests:              { order: 790 }
   pcoa_bray:                { order: 700 }
   beta_tests:               { order: 690 }
+  betadisper_bray:          { order: 685 }
   permanova_pairwise:       { order: 680 }
   maaslin3:                     { order: 600 }
+  maaslin3_volcano:             { order: 595 }
   maaslin3_coefficients:        { order: 590 }
   maaslin3_abundance_boxplots:  { order: 580 }
   maaslin3_prevalence_bars:     { order: 570 }
