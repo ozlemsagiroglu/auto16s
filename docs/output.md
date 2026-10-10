@@ -26,7 +26,7 @@ All paths are relative to `--outdir` (default `results/`). Figures are saved as 
 | `dada2_quality_truncation.png` | Median quality (and IQR) per position for R1 and R2 with the chosen truncation |
 | `dada2_read_tracking_plot.png` | % of input read pairs retained per step, one line per sample |
 | `dada2_errors_R1.png`, `dada2_errors_R2.png` | Learned error models (points: observed; black line: fitted). The line should follow the points |
-| `dada2_asv_length.png` | Reads per ASV length; one main peak at the region length is expected |
+| `dada2_asv_length.png` (also in the report) | Reads per ASV length; one main peak at the region length is expected |
 | `seqtab_nochim.rds` | DADA2 sequence table (samples × ASV sequences), before taxonomic filtering |
 | `dada2.log` | Full log of the DADA2 step |
 

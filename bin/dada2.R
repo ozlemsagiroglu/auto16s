@@ -263,11 +263,16 @@ p <- ggplot(tl, aes(step, pct, group = sample)) +
 save_fig(p, "dada2_read_tracking_plot", 8, 5, mqc = TRUE)
 
 lens <- data.frame(length = nchar(colnames(seqtab.nochim)), reads = colSums(seqtab.nochim))
+main_len <- lens$length[which.max(lens$reads)]
+near <- sum(lens$reads[abs(lens$length - main_len) <= 5]) / max(1, sum(lens$reads))
 p <- ggplot(aggregate(reads ~ length, lens, sum), aes(length, reads)) + geom_col(fill = "#0072B2", width = 1) +
   scale_y_continuous(labels = scales::comma) +
-  labs(title = "ASV length distribution (merged, without primers)",
-       subtitle = "One main peak at the region length is expected (e.g. V4 ~253 bp, V3-V4 ~400-430 bp); distant peaks are often off-target products",
+  scale_x_continuous(limits = c(min(min(lens$length), main_len - 20) - 1, max(max(lens$length), main_len + 20) + 1),
+                     breaks = function(l) unique(round(scales::extended_breaks()(l)))) +
+  labs(title = "Merged sequences: ASV length (R1 + R2 merged, without primers)",
+       subtitle = sprintf("%s ASVs | main peak %d bp | %.1f%% of reads within 5 bp of it\nOne main peak at the region length is expected (V4 ~253 bp, V3-V4 ~400-430 bp); distant peaks are often off-target",
+                          format(nrow(lens), big.mark = ","), main_len, 100 * near),
        x = "ASV length (bp)", y = "Reads") + theme_amp()
-save_fig(p, "dada2_asv_length", 8, 4.5)
+save_fig(p, "dada2_asv_length", 9, 4.8, mqc = TRUE)
 
 write_session("dada2")

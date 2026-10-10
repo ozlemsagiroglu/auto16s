@@ -33,6 +33,7 @@ custom_data:
   primer_detection:         { section_name: "Primer detection" }
   dada2_quality_truncation: { section_name: "DADA2: read quality and truncation" }
   dada2_read_tracking_plot: { section_name: "DADA2: reads retained per step" }
+  dada2_asv_length:         { section_name: "DADA2: merged sequences (ASV length)" }
   rarefaction_curves:       { section_name: "Rarefaction curves" }
   sample_depths_plot:       { section_name: "Reads per sample" }
   genus_barplot_samples:    { section_name: "Composition: genera per sample" }
@@ -51,6 +52,7 @@ report_section_order:
   dada2_quality_truncation: { order: 990 }
   dada2_read_tracking:      { order: 970 }
   dada2_read_tracking_plot: { order: 965 }
+  dada2_asv_length:         { order: 964 }
   fastqc_raw:               { order: 962 }
   fastqc_filtered:          { order: 961 }
   taxonomic_filtering:      { order: 950 }
