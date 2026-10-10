@@ -22,7 +22,6 @@ The only required input is a samplesheet.
 - [Input](#input)
 - [Parameters and defaults](#parameters-and-defaults)
 - [What the pipeline decides from the data](#what-the-pipeline-decides-from-the-data)
-- [Quality filtering](#quality-filtering)
 - [Outputs](#outputs)
 - [Statistics](#statistics)
 - [Figures](#figures)
@@ -243,28 +242,6 @@ Truncating too late loses reads, because errors at the 3' end push them over the
 
 Rarefaction is used for alpha and beta diversity only. The depth is the smallest depth among samples with at least 1,000 reads and at least 10 % of the median depth. One failed sample therefore cannot force all others down to a few hundred reads. Samples below the depth are left out of alpha and beta diversity and listed in the report. Composition and MaAsLin 3 use all samples and all reads.
 
-## Quality filtering
-
-Quality control is done by DADA2 rather than a separate trimmer, so it may help to know how it compares with Trimmomatic.
-
-| | Trimmomatic | DADA2 (this pipeline) |
-|---|---|---|
-| Low-quality 3' end | cut per read (sliding window) → reads of different lengths | cut at the same position in every read (`truncLen`) |
-| Read with many errors | kept if no window falls below the threshold | **removed** if its expected number of errors exceeds 2 (`maxEE`) |
-| Single low-quality bases | cut the read there | kept; handled by the error model learned from the run |
-
-The expected number of errors of a read is the sum of the error probabilities of its bases (Q30 = 0.001, Q20 = 0.01, Q10 = 0.1). It measures the error load of the whole read, which a sliding window does not. Reads of equal length are a requirement of DADA2's denoising, not a cosmetic choice. The few single errors that remain are corrected by the denoising itself; correcting them is what an ASV method does.
-
-On the test data (sample S01, 2,500 read pairs):
-
-| | Kept (83 %) | Removed (17 %) |
-|---|---|---|
-| Median expected errors R1 / R2 | 0.06 / 0.19 | 2.14 / 1.11 |
-| Mean quality R1 / R2 | Q36.3 / Q35.1 | Q31.2 / Q30.9 |
-| Bases below Q20 (median, R1 / R2) | 0.0 % / 0.8 % | 16.0 % / 9.7 % |
-
-None of the kept pairs exceeds 2 expected errors. Of the removed pairs, about 30 % were removed only because they contain an N; the test data has N bases added on purpose. About a third of the kept pairs contain a short dip below Q20 that a `SLIDINGWINDOW:4:20` check would have cut. DADA2 keeps them because their overall error load is low (median 1.4 expected errors for the pair).
-
 ## Outputs
 
 All results are in `--outdir`. Besides the figures, every number behind a figure is delivered as a table, and the full data as phyloseq objects, so you can make your own figures or analyses.
@@ -360,7 +337,6 @@ The workflow is deliberately fixed and assumes:
 - **One differential abundance method.** Differential abundance methods can give different results on the same data (Nearing et al. 2022). Report MaAsLin 3 results as such.
 - **Small groups.** Permutation tests cannot produce small p-values with very few samples. With 3 vs 2 samples there are only 10 distinct permutations, so p ≥ 0.1.
 
-For other designs, data types or analyses, [nf-core/ampliseq](https://nf-co.re/ampliseq) offers many more options.
 
 ## Testing
 
