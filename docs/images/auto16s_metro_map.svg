@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2400" height="980" viewBox="0 0 2400 980">
 <rect width="2400" height="980" fill="white"/>
 <text x="60" y="80" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="42" font-weight="bold" text-anchor="start" fill="#111827" >auto16s</text>
-<text x="60" y="118" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="16" font-weight="normal" text-anchor="start" fill="#6B7280" >16S rRNA amplicon analysis from raw reads to a written report  ·  one fixed, literature-standard workflow  ·  primers, truncation and rarefaction depth chosen from the data</text>
+<text x="60" y="118" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="16" font-weight="normal" text-anchor="start" fill="#6B7280" >Raw reads to diversity statistics, differential abundance and a written report  ·  primers, truncation and rarefaction depth chosen from the data</text>
 <rect x="40" y="150" width="700" height="590" rx="22" fill="#F3F4F6"/>
 <rect x="62" y="150" width="656" height="5" rx="2.5" fill="#0072B2"/>
 <text x="62" y="192" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="15" font-weight="bold" text-anchor="start" fill="#0072B2" >1</text>

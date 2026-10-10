@@ -69,7 +69,7 @@ def doc_icon(x, y, color, tag):
 # ---------------- background, title ----------------
 add(f'<rect width="{W}" height="{H}" fill="white"/>')
 text(60, 80, "auto16s", 42, "bold", "start")
-text(60, 118, "16S rRNA amplicon analysis from raw reads to a written report  ·  one fixed, literature-standard workflow  ·  "
+text(60, 118, "Raw reads to diversity statistics, differential abundance and a written report  ·  "
      "primers, truncation and rarefaction depth chosen from the data", 16, "normal", "start", MUTED)
 
 # ---------------- coordinates ----------------

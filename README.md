@@ -7,9 +7,9 @@
 [![run with conda](https://img.shields.io/badge/run%20with-conda-3EB049?logo=anaconda)](https://docs.conda.io/en/latest/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**auto16s** analyses paired-end 16S rRNA amplicon data, from raw FASTQ files to statistics and publication-ready figures, in one fixed workflow.
+**auto16s** takes paired-end 16S rRNA amplicon reads from raw FASTQ files to diversity statistics, differential abundance results and a written report.
 
-It is built for the common case: one Illumina run and a comparison between groups. There are no alternative routes to choose from. The steps and their settings follow the standard DADA2-based workflow used in the microbiome literature. The pipeline determines from the data what usually has to be looked up by hand: which primers are in the reads, where to truncate, and how deep to rarefy. Every decision is shown in the report.
+It is designed for a typical study: samples sequenced in one Illumina run and compared between groups. Each step uses a widely used tool (DADA2, SILVA, phyloseq, vegan, MaAsLin 3) with the settings recommended by its authors, so there is little to configure. What usually has to be worked out by hand (which primers are in the reads, where to truncate them, how deep to rarefy) is determined from the data, and each decision is shown in the report.
 
 The only required input is a samplesheet.
 
@@ -190,7 +190,7 @@ It warns about groups with fewer than 3 samples, and prints the number of sample
 | `--rarefy_depth` | automatic | Fixed rarefaction depth |
 | `--max_cpus`, `--max_memory`, `--max_time` | all CPUs and all memory of the machine, `24.h` | Upper limits per task. Tasks never ask for more than these, so the pipeline also runs on a laptop |
 
-**Settings applied in every run.** These are literature-standard values, stored in [`nextflow.config`](nextflow.config):
+**Settings applied in every run.** These follow the recommendations of the tools' authors and are stored in [`nextflow.config`](nextflow.config):
 
 | Step | Setting | Value |
 |---|---|---|
