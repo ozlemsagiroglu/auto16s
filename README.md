@@ -364,7 +364,7 @@ For other designs, data types or analyses, [nf-core/ampliseq](https://nf-co.re/a
 
 ## Testing
 
-`-profile test` runs real reads: the V4 example data shipped with DADA2 (2×250 bp), with 515F-Y/806RB primers added and their degenerate bases resolved per read. It has 8 samples in 2 groups with a built-in difference in composition. Three other scenarios can be generated with the same script:
+`-profile test` runs real reads: the V4 example reads (mouse gut, 2×250 bp) and the small example taxonomy training set distributed with the [DADA2](https://benjjneb.github.io/dada2/) R package, with 515F-Y/806RB primers added and their degenerate bases resolved per read. The full SILVA database is not part of the repository; it is downloaded from [Zenodo](https://doi.org/10.5281/zenodo.4587955) when the pipeline runs (CC BY 4.0). It has 8 samples in 2 groups with a built-in difference in composition. Three other scenarios can be generated with the same script:
 
 ```bash
 Rscript tests/make_test_data.R tests/data_spacer spacer     # 0-7 nt spacers, half of the pairs reverse-oriented
@@ -378,7 +378,11 @@ In all of them, the primers are found (or correctly reported as absent), the amp
 
 ## Citations
 
-If you use auto16s, please cite the tools it relies on:
+If you use auto16s, please cite it (GitHub's "Cite this repository" button gives the reference from [`CITATION.cff`](CITATION.cff)):
+
+> Sağıroğlu Ö. (2026). auto16s: automated analysis of paired-end 16S rRNA amplicon data (version 0.5.0). https://github.com/ozlemsagiroglu/auto16s
+
+and the tools it relies on:
 
 - **Nextflow**: Di Tommaso P. et al. (2017). Nextflow enables reproducible computational workflows. *Nat Biotechnol* 35:316–319.
 - **FastQC**: Andrews S. (2010). FastQC: a quality control tool for high throughput sequence data.
@@ -402,4 +406,4 @@ Background for design choices:
 
 ## License
 
-auto16s is released under the [MIT License](LICENSE). The tools it runs keep their own licenses.
+The auto16s code is released under the [MIT License](LICENSE). The tools it runs are separate programs under their own licenses (for example DADA2: LGPL, phyloseq: AGPL-3, vegan: GPL-2, FastQC and MultiQC: GPL-3, MaAsLin 3: MIT). The SILVA reference database is downloaded at run time and is licensed under CC BY 4.0. The test data in `tests/data` are derived from the example reads distributed with the DADA2 package.

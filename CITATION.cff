@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use auto16s in your work, please cite it as below, together with the tools it runs (see the Citations section of the README)."
+type: software
+title: "auto16s: automated analysis of paired-end 16S rRNA amplicon data"
+abstract: >-
+  A Nextflow pipeline that takes paired-end 16S rRNA amplicon reads from raw FASTQ files to diversity
+  statistics, differential abundance results and a written report. It detects and removes primers and
+  adapters, chooses truncation lengths and rarefaction depth from the data, infers ASVs with DADA2,
+  assigns taxonomy against SILVA, and runs phyloseq, vegan and MaAsLin 3 analyses.
+authors:
+  - family-names: "Sağıroğlu"
+    given-names: "Özlem"
+    orcid: "https://orcid.org/0009-0008-3192-5256"
+version: "0.5.0"
+date-released: "2026-10-10"
+repository-code: "https://github.com/ozlemsagiroglu/auto16s"
+url: "https://github.com/ozlemsagiroglu/auto16s"
+license: MIT
+keywords:
+  - 16S rRNA
+  - amplicon sequencing
+  - microbiome
+  - DADA2
+  - Nextflow
+  - bioinformatics pipeline
