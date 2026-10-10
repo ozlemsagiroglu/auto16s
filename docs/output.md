@@ -21,7 +21,7 @@ All paths are relative to `--outdir` (default `results/`). Figures are saved as 
 
 | File | Content |
 |---|---|
-| `dada2_truncation.tsv` | Chosen `truncLen`, estimated amplicon length, expected R1/R2 overlap, merge rate, chimera rate, **QC warnings** |
+| `dada2_truncation.tsv` | Chosen `truncLen` and why, estimated amplicon length, expected R1/R2 overlap, share of read pairs expected to pass filtering, merge rate, chimera rate, **QC warnings** |
 | `dada2_read_tracking.tsv` | Read pairs per sample after each step: input, primers found, filtered, denoised, merged, non-chimeric; merge rate and % retained |
 | `dada2_quality_truncation.png` | Median quality (and IQR) per position for R1 and R2 with the chosen truncation |
 | `dada2_read_tracking_plot.png` | % of input read pairs retained per step, one line per sample |

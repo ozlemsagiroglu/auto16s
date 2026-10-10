@@ -38,6 +38,13 @@ theme_amp <- function(base_size = 11) {
                    legend.key.size = ggplot2::unit(0.45, "cm"))
 }
 
+# x-axis labels: rotate them when they would not fit side by side (slot_in = inches available per label)
+x_text_fit <- function(labels, slot_in) {
+  need <- max(nchar(as.character(labels)), 1) * 0.065 + 0.1
+  if (need <= slot_in) ggplot2::theme()
+  else ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 30, hjust = 1, vjust = 1))
+}
+
 # PNG (300 dpi) + vector PDF; optional low-res copy *_mqc.png that MultiQC embeds as an image section
 save_fig <- function(p, name, width = 8, height = 6, mqc = FALSE) {
   ggplot2::ggsave(paste0(name, ".png"), p, width = width, height = height, dpi = 300, bg = "white")

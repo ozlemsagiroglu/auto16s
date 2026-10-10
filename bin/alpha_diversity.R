@@ -56,7 +56,9 @@ p <- ggplot(long, aes(group, value, fill = group)) +
                           format(unique(sample_sums(ps))[1], big.mark = ","),
                           paste(names(table(alpha$group)), table(alpha$group), sep = ": ", collapse = ", ")),
        x = NULL, y = NULL) +
-  theme_amp() + theme(legend.position = "none", axis.text.x = element_text(angle = if (k > 3) 30 else 0, hjust = if (k > 3) 1 else 0.5))
-save_fig(p, "alpha_diversity", 3 + 2.2 * length(measures) + 0.4 * k, 4.8, mqc = TRUE)
+  theme_amp() + theme(legend.position = "none")
+fig_w <- 3 + 2.2 * length(measures) + 0.4 * k
+p <- p + x_text_fit(glev, (fig_w - 1) / length(measures) / k)
+save_fig(p, "alpha_diversity", fig_w, 4.8, mqc = TRUE)
 
 write_session("alpha")

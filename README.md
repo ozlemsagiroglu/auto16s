@@ -224,11 +224,12 @@ If no known primer pair is found, the pipeline assumes the primers were already 
 
 The truncation length is computed from the reads themselves. FastQC is only for viewing. On the first reads of every sample, after primer removal, the pipeline:
 
-1. computes the median quality per position and truncates where it drops below Q25;
-2. estimates the amplicon length by aligning R1 to the reverse complement of R2;
-3. checks that R1 and R2 still overlap by at least 20 bp after truncation; if not, it truncates less.
+1. estimates the amplicon length by aligning R1 to the reverse complement of R2 (the longest common length is used, so variable-length regions such as V3-V4 are covered);
+2. for every pair of truncation positions, counts how many read pairs would pass the quality filter (`maxEE = 2`, no N, no base with Q ≤ 2);
+3. keeps only the pairs that leave R1 and R2 overlapping by at least 20 bp;
+4. picks the pair that keeps the most read pairs. Among pairs within 1 percentage point of the best, the longest reads are preferred.
 
-Step 3 matters because a too-short truncation is the most common reason why read pairs silently fail to merge in DADA2. The quality profile, the chosen positions and the expected overlap are shown in `dada2/dada2_quality_truncation.png`.
+Truncating too late loses reads, because errors at the 3' end push them over the expected-error limit. Truncating too early prevents merging, the most common reason why read pairs silently fail in DADA2. This procedure finds the balance from the data, following the idea of FIGARO (Weinstein et al. 2019). On the test data it keeps 83 % of the read pairs, against 68 % with a rule based on the median quality. The quality profile, the chosen positions, the expected overlap and the expected share of read pairs passing are shown in `dada2/dada2_quality_truncation.png` and in the report.
 
 ### Rarefaction depth
 
@@ -248,13 +249,13 @@ The expected number of errors of a read is the sum of the error probabilities of
 
 On the test data (sample S01, 2,500 read pairs):
 
-| | Kept (72 %) | Removed (28 %) |
+| | Kept (83 %) | Removed (17 %) |
 |---|---|---|
-| Median expected errors R1 / R2 | 0.24 / 0.22 | 3.84 / 1.52 |
-| Mean quality R1 / R2 | Q36.4 / Q35.9 | Q28.7 / Q31.5 |
-| Bases below Q20 (median, R1 / R2) | 1.3 % / 1.4 % | 19.2 % / 11.9 % |
+| Median expected errors R1 / R2 | 0.06 / 0.19 | 2.14 / 1.11 |
+| Mean quality R1 / R2 | Q36.3 / Q35.1 | Q31.2 / Q30.9 |
+| Bases below Q20 (median, R1 / R2) | 0.0 % / 0.8 % | 16.0 % / 9.7 % |
 
-None of the kept pairs exceeds 2 expected errors. Every removed pair would also have been trimmed by a `SLIDINGWINDOW:4:20` check. About half of the kept pairs contain a short dip below Q20 that Trimmomatic would have cut. DADA2 keeps them because their overall error load is low (median 0.8 expected errors).
+None of the kept pairs exceeds 2 expected errors. Of the removed pairs, about 30 % were removed only because they contain an N; the test data has N bases added on purpose. About a third of the kept pairs contain a short dip below Q20 that a `SLIDINGWINDOW:4:20` check would have cut. DADA2 keeps them because their overall error load is low (median 1.4 expected errors for the pair).
 
 ## Outputs
 
@@ -383,6 +384,7 @@ If you use auto16s, please cite the tools it relies on:
 
 Background for design choices:
 
+- Weinstein M.M. et al. (2019). FIGARO: an efficient and objective tool for optimizing microbiome rRNA gene trimming parameters. *bioRxiv* 610394.
 - Klindworth A. et al. (2013). Evaluation of general 16S ribosomal RNA gene PCR primers. *Nucleic Acids Res* 41:e1.
 - Schloss P.D. (2024). Rarefaction is currently the best approach to control for uneven sequencing effort in amplicon sequence analyses. *mSphere*.
 - Nearing J.T. et al. (2022). Microbiome differential abundance methods produce different results across 38 datasets. *Nat Commun* 13:342.

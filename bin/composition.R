@@ -60,9 +60,10 @@ for (lvl in levels) {
   p <- ggplot(gm, aes(group, abundance, fill = taxon)) + geom_col(width = 0.7) +
     scale_fill_manual(values = pal, breaks = names(pal)) +
     scale_y_continuous(labels = scales::percent, expand = c(0, 0)) +
-    labs(title = sprintf("Mean %s composition per group", tolower(lvl)), x = gcol, y = "Mean relative abundance", fill = lvl) +
-    theme_amp()
-  save_fig(p, paste0(tolower(lvl), "_barplot_groups"), 3 + 1.2 * length(glev), 6, mqc = lvl == "Family")
+    labs(title = sprintf("Mean %s composition per group", tolower(lvl)), x = NULL, y = "Mean relative abundance", fill = lvl) +
+    theme_amp() + x_text_fit(glev, 1.1)
+  legend_w <- 0.075 * max(nchar(names(pal))) + 0.9
+  save_fig(p, paste0(tolower(lvl), "_barplot_groups"), max(5, 1.3 + 1.1 * length(glev) + legend_w), 6, mqc = lvl == "Family")
 }
 
 # ---------- genus heatmap (top 25, log10 %) ----------

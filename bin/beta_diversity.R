@@ -82,7 +82,8 @@ p <- ggplot(disp, aes(group, distance, fill = group)) +
   geom_point(aes(colour = group), position = position_jitter(width = 0.12, seed = 1), size = 2) +
   scale_fill_manual(values = gpal) + scale_colour_manual(values = gpal) +
   labs(title = "Within-group dispersion (betadisper)", subtitle = sprintf("Distance to group centroid; permutest p %s", fmt_p(disp_p)),
-       x = NULL, y = "Distance to centroid") + theme_amp() + theme(legend.position = "none")
+       x = NULL, y = "Distance to centroid") + theme_amp() + theme(legend.position = "none") +
+  x_text_fit(glev, (2 + 1.1 * length(glev)) / length(glev))
 save_fig(p, "betadisper_bray", 3 + 1.1 * length(glev), 4.8)
 
 write_session("beta")

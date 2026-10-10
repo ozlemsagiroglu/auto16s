@@ -92,32 +92,55 @@ qual_cut <- function(med, start, capv) {
   min(if (length(bad)) bad[1] - 1 else length(med), capv)
 }
 trunc_note <- character(0)
+exp_pass <- NA
 if (!is.na(opt$trunc_len_f) && !is.na(opt$trunc_len_r)) {
   tF <- as.integer(opt$trunc_len_f); tR <- as.integer(opt$trunc_len_r)
   trunc_note <- "set by user"
 } else {
-  tF <- qual_cut(cs$median[cs$read == "R1 (forward)"], fw_len, capF)
-  tR <- qual_cut(cs$median[cs$read == "R2 (reverse)"], rv_len, capR)
-  trunc_note <- sprintf("quality: first cycle with median Q < %g", qmin)
-  if (!is.na(amp)) {
-    need <- amp + min_overlap + 8                       # 8 bp safety margin
-    have <- (tF - fw_len) + (tR - rv_len)
-    if (have < need) {
-      deficit <- need - have; roomF <- capF - tF; roomR <- capR - tR
-      if (roomF + roomR < deficit) {
-        tF <- capF; tR <- capR
-        trunc_note <- c(trunc_note, "reads cannot cover the amplicon with the required overlap even untruncated")
-        message("WARNING: R1+R2 are too short to overlap over the amplicon; many pairs will not merge.")
-      } else {
-        addF <- min(roomF, ceiling(deficit * roomF / (roomF + roomR))); addR <- deficit - addF
-        if (addR > roomR) { addR <- roomR; addF <- deficit - addR }
-        tF <- tF + addF; tR <- tR + addR
-        trunc_note <- c(trunc_note, sprintf("extended by %d (R1) / %d (R2) bases to keep >= %d bp overlap",
-                                            addF, addR, min_overlap + 8))
-      }
+  # Per read: the longest truncation at which it still passes filterAndTrim
+  # (expected errors <= maxEE, no base with Q <= truncQ before it, read long enough).
+  pass_len <- function(m, sq) {
+    m[is.na(m)] <- 0
+    npos <- gregexpr("N", sq, fixed = TRUE)                   # maxN = 0: a read fails at its first N
+    for (i in which(vapply(npos, function(x) x[1] > 0, TRUE))) m[i, npos[[i]][npos[[i]] <= ncol(m)]] <- 0
+    ee <- t(apply(10^(-m / 10), 1, cumsum))
+    ok <- ee <= max_ee & m > 2
+    apply(ok, 1, function(r) { b <- which(!r); if (length(b)) b[1] - 1L else length(r) })
+  }
+  LF <- pass_len(qF, seqF); LR <- pass_len(qR, seqR)
+  amp_hi <- if (is.na(amp)) NA else as.numeric(quantile(amp_len, 0.99, na.rm = TRUE))   # longest common amplicon
+  if (!is.na(amp_hi)) {
+    need <- ceiling(amp_hi) + min_overlap + 8          # 8 bp safety margin
+    wF <- ncol(qF); wR <- ncol(qR)
+    # kept[a, b] = share of read pairs passing with truncLen = (a, b): 2-D reverse cumulative count
+    tab <- matrix(0, wF + 1, wR + 1)
+    for (k in seq_along(LF)) tab[LF[k] + 1, LR[k] + 1] <- tab[LF[k] + 1, LR[k] + 1] + 1
+    kept <- apply(apply(tab[(wF + 1):1, (wR + 1):1, drop = FALSE], 2, cumsum), 1, cumsum)
+    kept <- t(kept)[(wF + 1):1, (wR + 1):1, drop = FALSE] / length(LF)     # row a+1 = truncLen a
+    grid <- expand.grid(tF = 50:wF, tR = 50:wR)
+    grid <- grid[grid$tF + grid$tR >= need, ]
+    if (nrow(grid)) {
+      grid$kept <- kept[cbind(grid$tF + 1, grid$tR + 1)]
+      best <- max(grid$kept)
+      # within 1 percentage point of the best: prefer the longest reads (more overlap, more sequence for denoising)
+      cand <- grid[grid$kept >= best - 0.01, ]
+      cand <- cand[order(-(cand$tF + cand$tR), -cand$kept), ][1, ]
+      tF <- cand$tF; tR <- cand$tR
+      old <- c(qual_cut(cs$median[cs$read == "R1 (forward)"], fw_len, capF), qual_cut(cs$median[cs$read == "R2 (reverse)"], rv_len, capR))
+      old_kept <- if (sum(old) >= need) kept[old[1] + 1, old[2] + 1] else NA
+      trunc_note <- sprintf("chosen to keep the most read pairs through maxEE = %g with >= %d bp overlap: %.1f%% expected to pass%s",
+                            max_ee, min_overlap + 8, 100 * cand$kept,
+                            if (is.na(old_kept)) "" else sprintf(" (median-quality rule %d/%d: %.1f%%)", old[1], old[2], 100 * old_kept))
+      exp_pass <- cand$kept
+    } else {
+      tF <- wF; tR <- wR
+      trunc_note <- "reads cannot cover the amplicon with the required overlap even untruncated"
+      message("WARNING: R1+R2 are too short to overlap over the amplicon; many pairs will not merge.")
     }
   } else {
-    trunc_note <- c(trunc_note, "amplicon length unknown: overlap not checked")
+    tF <- qual_cut(cs$median[cs$read == "R1 (forward)"], fw_len, capF)
+    tR <- qual_cut(cs$median[cs$read == "R2 (reverse)"], rv_len, capR)
+    trunc_note <- c(sprintf("quality: first cycle with median Q < %g", qmin), "amplicon length unknown: overlap not checked")
   }
 }
 exp_overlap <- if (is.na(amp)) NA else (tF - fw_len) + (tR - rv_len) - amp
@@ -125,8 +148,9 @@ message(sprintf("truncLen = c(%d, %d); expected overlap = %s bp", tF, tR, exp_ov
 
 trunc_report <- data.frame(
   parameter = c("truncLen R1", "truncLen R2", "estimated amplicon length (without primers)",
-                "expected overlap (bp)", "truncLen decision"),
+                "expected overlap (bp)", "read pairs expected to pass filtering", "truncLen decision"),
   value = c(tF, tR, ifelse(is.na(amp), "NA", amp), ifelse(is.na(exp_overlap), "NA", exp_overlap),
+            ifelse(is.na(exp_pass), "NA", sprintf("%.1f%%", 100 * exp_pass)),
             paste(trunc_note, collapse = "; ")))
 
 # --- diagnostic plots
