@@ -9,7 +9,7 @@
 
 **auto16s** takes paired-end 16S rRNA amplicon reads from raw FASTQ files to diversity statistics, differential abundance results and a written report.
 
-It is designed for a typical study: samples sequenced in one Illumina run and compared between groups. Each step uses a widely used tool (DADA2, SILVA, phyloseq, vegan, MaAsLin 3) with the settings recommended by its authors, so there is little to configure. What usually has to be worked out by hand (which primers are in the reads, where to truncate them, how deep to rarefy) is determined from the data, and each decision is shown in the report.
+It is designed for a typical study: samples sequenced in one Illumina run and compared between groups. Each step uses a widely used tool (DADA2, SILVA, phyloseq, vegan, MaAsLin 3) with fixed settings (listed under [Parameters](#parameters-and-defaults)), so there is little to configure. What usually has to be worked out by hand (which primers are in the reads, where to truncate them, how deep to rarefy) is determined from the data, and each decision is shown in the report.
 
 The only required input is a samplesheet.
 
@@ -190,23 +190,29 @@ It warns about groups with fewer than 3 samples, and prints the number of sample
 | `--rarefy_depth` | automatic | Fixed rarefaction depth |
 | `--max_cpus`, `--max_memory`, `--max_time` | all CPUs and all memory of the machine, `24.h` | Upper limits per task. Tasks never ask for more than these, so the pipeline also runs on a laptop |
 
-**Settings applied in every run.** These follow the recommendations of the tools' authors and are stored in [`nextflow.config`](nextflow.config):
+**Settings used in every run.** The pipeline runs with the following values (stored in [`nextflow.config`](nextflow.config)):
 
-| Step | Setting | Value |
-|---|---|---|
-| Primer removal | primer start | within the first 12 bases of the read |
-| | mismatches allowed | 1 (primer < 20 nt) or 2 (≥ 20 nt), IUPAC codes honoured |
-| DADA2 `filterAndTrim` | `truncLen` | automatic (see below) |
-| | `maxEE` | 2 (R1 and R2) |
-| | `truncQ`, `maxN`, `rm.phix` | 2, 0, `TRUE` |
-| DADA2 `mergePairs` | `minOverlap`, `trimOverhang` | 12, `TRUE` |
-| Chimera removal | `removeBimeraDenovo` | `consensus` |
-| Taxonomy | `assignTaxonomy` `minBoot` | 50 |
-| Rarefaction | depth, seed | automatic (see below), 711 |
-| PERMANOVA / betadisper | permutations | 999 |
-| MaAsLin 3 | models, normalisation, transform | abundance (linear) + prevalence (logistic), TSS, LOG |
-| | `min_prevalence`, significance | 0.1, q < 0.05 (`qval_individual`, Benjamini-Hochberg) |
-| Bar plots | taxa shown | top 12 by mean relative abundance + "Other" |
+| Step | Setting | Value | What it does | Why this value |
+|---|---|---|---|---|
+| Primer removal | Primer position | within the first 12 bases | Where in the read the primer may start | Leaves room for the variable-length spacers some library preparations add before the primer |
+| | Mismatches | 1 (primer < 20 nt), 2 (≥ 20 nt); IUPAC codes honoured | Differences tolerated when matching the primer | Tolerates sequencing errors in the primer without matching unrelated sequences |
+| DADA2 `filterAndTrim` | `truncLen` | chosen from the data | Cuts every read at a fixed length | DADA2 needs reads of equal length; the position keeps the most read pairs while R1 and R2 still overlap (see below) |
+| | `maxEE` | 2 (R1 and R2) | Removes reads with more than 2 expected errors | The value used in the DADA2 tutorial; removes error-rich reads and keeps most of the rest |
+| | `truncQ` | 2 | Cuts a read at the first base with quality ≤ 2 | Q2 marks unusable bases on Illumina; such reads become too short and are removed |
+| | `maxN` | 0 | Removes reads that contain an N | DADA2's denoising does not accept N bases |
+| | `rm.phix` | `TRUE` | Removes PhiX reads | PhiX is a control added to Illumina runs, not part of the sample |
+| DADA2 `mergePairs` | `minOverlap` | 12 | Minimum overlap needed to merge R1 and R2 | DADA2 default; mismatches in the overlap are not allowed |
+| | `trimOverhang` | `TRUE` | Removes bases that extend past the start of the partner read | Prevents leftover primer or adapter bases from ending up in the ASVs |
+| Chimera removal | `removeBimeraDenovo` | `consensus` | Checks every sample for chimeras and removes ASVs flagged in most of the samples that contain them | DADA2 default |
+| Taxonomy | `assignTaxonomy` `minBoot` | 50 | Minimum bootstrap confidence to assign a rank | DADA2 default; 50 % is recommended for reads shorter than 250 bp (Wang et al. 2007) |
+| Rarefaction | Depth | chosen from the data | Subsamples every sample to the same number of reads | Alpha and beta diversity need equal depth; the rule keeps one failed sample from lowering all others (see below) |
+| | Seed | 711 | Starting value of the random subsampling | Makes the results reproducible |
+| PERMANOVA, betadisper | Permutations | 999 | Number of random permutations for the p-value | vegan default; the smallest possible p-value is 0.001 |
+| MaAsLin 3 | Models | abundance (linear) and prevalence (logistic) | Tests separately whether a genus is more abundant and whether it is present more often | MaAsLin 3 default; absence and low abundance are different effects |
+| | Normalisation, transform | TSS, LOG | Relative abundance, then log | MaAsLin 3 defaults |
+| | `min_prevalence` | 0.1 | Tests only genera found in at least 10 % of samples | Rarer genera cannot be tested reliably and only add to the multiple-testing correction |
+| | Significance | q < 0.05 (Benjamini-Hochberg) | Threshold for reporting a genus | A common threshold; stricter than the MaAsLin 3 default of 0.1 |
+| Bar plots | Taxa shown | top 12 by mean relative abundance, rest as "Other" | Number of taxa with their own colour | More colours can no longer be told apart |
 
 ## What the pipeline decides from the data
 
@@ -386,6 +392,7 @@ If you use auto16s, please cite the tools it relies on:
 
 Background for design choices:
 
+- Wang Q. et al. (2007). Naive Bayesian classifier for rapid assignment of rRNA sequences into the new bacterial taxonomy. *Appl Environ Microbiol* 73:5261-5267.
 - Weinstein M.M. et al. (2019). FIGARO: an efficient and objective tool for optimizing microbiome rRNA gene trimming parameters. *bioRxiv* 610394.
 - Klindworth A. et al. (2013). Evaluation of general 16S ribosomal RNA gene PCR primers. *Nucleic Acids Res* 41:e1.
 - Schloss P.D. (2024). Rarefaction is currently the best approach to control for uneven sequencing effort in amplicon sequence analyses. *mSphere*.
