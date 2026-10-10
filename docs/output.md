@@ -16,7 +16,7 @@ All paths are relative to `--outdir` (default `results/`). Figures are saved as 
 |---|---|
 | `primers.tsv` | Detected (or given) primers: names, sequences, 16S region, share of read pairs with both primers, share in reverse orientation, warnings. `status` is `detected`, `user` or `none` |
 | `primer_detection.png` | Share of R1 and R2 reads starting with each candidate primer; the selected pair is highlighted |
-| `stats/<sample>.primer_stats.tsv` | Per sample: read pairs in, pairs with both primers, % reverse-oriented (swapped), longest spacer seen, and `primer_left_R1_pct`/`primer_left_R2_pct`: % of reads that still contain the primer after removal (should be ≈ 0) |
+| `stats/<sample>.primer_stats.tsv` | Per sample: read pairs in, pairs with both primers, % reverse-oriented (swapped), longest spacer seen, `primer_left_R1_pct`/`primer_left_R2_pct`: % of reads that still contain the primer after removal (should be ≈ 0), and `readthrough_cut_R1_pct`/`readthrough_cut_R2_pct`: % of reads cut at the 3' end because they ran past the amplicon into the opposite primer or the adapter |
 
 ## `dada2/`
 

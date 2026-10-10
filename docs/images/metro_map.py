@@ -83,7 +83,7 @@ XR1, XR2 = 1530, 2230        # report stations: QC summary, final report
 XC = 2330                    # collector of the result lines
 
 # stage bands (behind everything)
-band(40, 740, "1", "Quality control and primers", C["qc"])
+band(40, 740, "1", "Quality control, primers and adapters", C["qc"])
 band(760, 1320, "2", "ASV inference (DADA2)", C["asv"])
 band(1340, 1700, "3", "Taxonomy", C["tax"])
 band(1720, 2370, "4", "Statistics and figures", C["div"])
@@ -116,7 +116,7 @@ text(X["in"], Y + 88, "R1 / R2 + samplesheet", 14.5, "normal", "middle", MUTED)
 main = [
     ("fastqc", C["qc"], "FastQC", ["raw reads"], "above"),
     ("pdet", C["qc"], "Primer detection", ["library of common", "16S primers"], "below"),
-    ("ptrim", C["qc"], "Primer removal", ["per read, then checked"], "above"),
+    ("ptrim", C["qc"], "Primer + adapter", ["removal, then checked"], "above"),
     ("filt", C["asv"], "Filter + truncate", ["truncLen keeping most reads,", "maxEE = 2"], "above"),
     ("err", C["asv"], "Denoise", ["error models R1 / R2"], "below"),
     ("merge", C["asv"], "Merge + chimeras", ["mergePairs,", "removeBimeraDenovo"], "above"),

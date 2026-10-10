@@ -5,6 +5,9 @@
 #   Rscript tests/make_test_data.R tests/data                  # primers at a fixed position
 #   Rscript tests/make_test_data.R tests/data_spacer spacer    # 0-7 nt spacers + half of the pairs reverse-oriented
 #   Rscript tests/make_test_data.R tests/data_noprimer none    # primers already removed
+#   Rscript tests/make_test_data.R tests/data_readthrough readthrough
+#                                     # 2 x 300 bp reads: they run past the 253 bp amplicon into the opposite
+#                                     # primer and the Illumina adapter (as for V4 sequenced 2 x 300)
 suppressPackageStartupMessages(library(ShortRead))
 args <- commandArgs(trailingOnly = TRUE)
 out  <- if (length(args) >= 1) args[1] else "tests/data"
@@ -40,6 +43,22 @@ add_n <- function(fq, frac = 0.03) {
   }
   ShortReadQ(DNAStringSet(s), quality(fq), id(fq))
 }
+# 2 x 300 bp read-through: full amplicon from R1 + the last bases of rc(R2), then
+# R1 = primer + amplicon + rc(reverse primer) + adapter, R2 = primer + rc(amplicon) + rc(forward primer) + adapter
+ADAPT_R1 <- "AGATCGGAAGAGCACACGTCTGAACTCCAGTCACATCACGATCTCGTATGCCGTCTTCTGCTTG"
+ADAPT_R2 <- "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATTAAAAAA"
+readthrough <- function(fq_f, fq_r, len = 300) {
+  f <- as.character(sread(fq_f)); r <- as.character(sread(fq_r)); n <- length(f)
+  rcr <- as.character(reverseComplement(DNAStringSet(r)))
+  amp <- paste0(f, substr(rcr, nchar(rcr) - 2, nchar(rcr)))                       # 253 bp
+  fp <- resolve(FWD, n); rp <- resolve(REV, n)
+  rc <- function(x) as.character(reverseComplement(DNAStringSet(x)))
+  s1 <- substr(paste0(fp, amp, rc(rp), ADAPT_R1, strrep("A", 100)), 1, len)
+  s2 <- substr(paste0(rp, rc(amp), rc(fp), ADAPT_R2, strrep("A", 100)), 1, len)
+  q <- function(fq) { x <- as.character(quality(quality(fq))); substr(paste0(x, substr(x, 151, 250), substr(x, 151, 250)), 1, len) }
+  list(F = ShortReadQ(DNAStringSet(s1), FastqQuality(q(fq_f)), id(fq_f)),
+       R = ShortReadQ(DNAStringSet(s2), FastqQuality(q(fq_r)), id(fq_r)))
+}
 mix <- function(frac1, n = 2500) {
   k1 <- rbinom(1, n, frac1)
   i1 <- sample(length(s1F), k1, replace = TRUE); i2 <- sample(length(s2F), n - k1, replace = TRUE)
@@ -52,7 +71,11 @@ for (i in seq_len(nrow(design))) {
   n <- length(m$F)
   spF <- if (mode == "spacer") sample(0:7, n, TRUE) else integer(n)
   spR <- if (mode == "spacer") sample(0:7, n, TRUE) else integer(n)
-  F <- add_primer(m$F, FWD, spF); R <- add_primer(m$R, REV, spR)
+  if (mode == "readthrough") {
+    rt <- readthrough(m$F, m$R); F <- rt$F; R <- rt$R
+  } else {
+    F <- add_primer(m$F, FWD, spF); R <- add_primer(m$R, REV, spR)
+  }
   if (mode == "spacer") {                       # ligation-type libraries: half of the pairs come out swapped
     sw <- seq_len(n) %% 2 == 0
     F2 <- append(F[!sw], R[sw]); R2 <- append(R[!sw], F[sw]); F <- F2; R <- R2

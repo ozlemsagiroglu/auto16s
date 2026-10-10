@@ -166,8 +166,8 @@ samp <- samp[order(samp[[gcol]], samp$sample), ]
 
 # ---------------------------------------------------------------- methods
 pr_txt <- if (identical(primers$status, "none")) {
-  "No known 16S primer pair was found at the start of the reads; the reads were used as delivered (primers already removed)."
-} else sprintf("The primers were identified automatically by matching the read starts against a library of common 16S primers: %s (%s) and %s (%s), 16S region %s%s. They were removed from every read by sequence (IUPAC codes, 1-2 mismatches, variable-length spacers and reverse-oriented pairs handled); read pairs without both primers were discarded (%s of read pairs carried both).",
+  "No known 16S primer pair was found at the start of the reads; the reads were used as delivered (primers already removed), except that Illumina adapter sequences (TruSeq, Nextera) at the 3' end were cut off."
+} else sprintf("The primers were identified automatically by matching the read starts against a library of common 16S primers: %s (%s) and %s (%s), 16S region %s%s. They were removed from every read by sequence (IUPAC codes, 1-2 mismatches, variable-length spacers and reverse-oriented pairs handled); read pairs without both primers were discarded (%s of read pairs carried both). Reads that ran past the end of the amplicon were cut before the reverse complement of the opposite primer or the Illumina adapter (TruSeq, Nextera).",
              esc(primers$fw_name), esc(primers$fw_primer), esc(primers$rv_name), esc(primers$rv_primer), esc(primers$region),
              if (identical(primers$status, "user")) " (given by the user)" else "", pct(as.numeric(primers$pairs_with_primers_pct)))
 methods_html <- paste0(
@@ -222,8 +222,11 @@ results_html <- paste0(
           num(input_total), pct(median(track$retained_pct)), esc(trunc[["median merge rate"]]), esc(trunc[["reads kept after chimera removal"]])),
   table_html(track, "Read pairs per sample after each step (primers found, filtered, denoised R1/R2, merged, non-chimeric)."),
   if (!is.null(pstats) && "primer_left_R1_pct" %in% names(pstats))
-    sprintf("<p>Primer removal check: after removal, at most %s of R1 and %s of R2 reads still contained the primer.</p>",
-            pct(max(pstats$primer_left_R1_pct, na.rm = TRUE), 2), pct(max(pstats$primer_left_R2_pct, na.rm = TRUE), 2)) else "",
+    sprintf("<p>Primer removal check: after removal, at most %s of R1 and %s of R2 reads still contained the primer.%s</p>",
+            pct(max(pstats$primer_left_R1_pct, na.rm = TRUE), 2), pct(max(pstats$primer_left_R2_pct, na.rm = TRUE), 2),
+            if ("readthrough_cut_R1_pct" %in% names(pstats))
+              sprintf(" Reads that ran past the end of the amplicon into the opposite primer or the adapter were cut there: median %s of R1 and %s of R2 reads per sample.",
+                      pct(median(pstats$readthrough_cut_R1_pct, na.rm = TRUE)), pct(median(pstats$readthrough_cut_R2_pct, na.rm = TRUE))) else "") else "",
   figure("dada2_quality_truncation.png", "Read quality after primer removal (median and interquartile range per position) and the chosen truncation positions."),
   figure("dada2_read_tracking_plot.png", "Share of read pairs retained through the DADA2 steps; one line per sample."),
   figure("dada2_asv_length.png", "Length of the merged sequences (ASVs). One main peak at the length of the amplified region is expected."),

@@ -229,9 +229,9 @@ if (chim_kept < 0.8) message("WARNING: < 80% of reads survived chimera removal. 
 # per-sample primer removal check (from PRIMER_TRIM)
 if (!is.null(pstat)) {
   pcols <- intersect(c("sample", "input", "with_primers", "with_primers_pct", "swapped_pct", "spacer_max",
-                       "primer_left_R1_pct", "primer_left_R2_pct"), colnames(pstat))
-  write_mqc_table(pstat[order(pstat$sample), pcols], "primer_removal_mqc.tsv", "primer_removal", "Primer removal per sample",
-                  "Read pairs with both primers (kept), share reverse-oriented (swapped), and the check after trimming: primer_left = % of trimmed reads that still start with the primer (should be ~0).")
+                       "primer_left_R1_pct", "primer_left_R2_pct", "readthrough_cut_R1_pct", "readthrough_cut_R2_pct"), colnames(pstat))
+  write_mqc_table(pstat[order(pstat$sample), pcols], "primer_removal_mqc.tsv", "primer_removal", "Primer and adapter removal per sample",
+                  "Read pairs with both primers (kept), share reverse-oriented (swapped), the check after trimming (primer_left: % of trimmed reads that still start with the primer, should be ~0), and readthrough_cut: % of reads that ran past the end of the amplicon and were cut before the opposite primer / adapter (0 when the amplicon is longer than the reads).")
   left <- suppressWarnings(max(c(pstat$primer_left_R1_pct, pstat$primer_left_R2_pct), na.rm = TRUE))
   if (is.finite(left) && left > 1)
     primer_msgs <- c(primer_msgs, sprintf("Up to %.1f%% of trimmed reads still start with a primer: primer removal was incomplete (see 'Primer removal per sample').", left))

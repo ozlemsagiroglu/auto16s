@@ -36,7 +36,7 @@ The only required input is a samplesheet.
 
 1. **Read QC** of the raw reads ([FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
 2. **Primer detection**: the read starts are matched against a library of common 16S primers ([`assets/primers_16s.tsv`](assets/primers_16s.tsv)).
-3. **Primer removal**, per read and by sequence. This handles variable-length spacers before the primer and pairs in reverse orientation. Pairs without both primers are dropped. Afterwards every read is checked again for the primer, so the report shows whether removal worked.
+3. **Primer removal**, per read and by sequence. This handles variable-length spacers before the primer and pairs in reverse orientation. Pairs without both primers are dropped. Afterwards every read is checked again for the primer, so the report shows whether removal worked. When the amplicon is shorter than the reads (e.g. V4 sequenced 2×300), reads run past its end into the opposite primer and the sequencing adapter; they are cut there.
 4. **ASV inference** ([DADA2](https://benjjneb.github.io/dada2/)):
    - quality filtering with automatic `truncLen` and `maxEE`;
    - error models for R1 and R2;
@@ -196,6 +196,7 @@ It warns about groups with fewer than 3 samples, and prints the number of sample
 |---|---|---|---|---|
 | Primer removal | Primer position | within the first 12 bases | Where in the read the primer may start | Leaves room for the variable-length spacers some library preparations add before the primer |
 | | Mismatches | 1 (primer < 20 nt), 2 (≥ 20 nt); IUPAC codes honoured | Differences tolerated when matching the primer | Tolerates sequencing errors in the primer without matching unrelated sequences |
+| Adapter removal | Read-through at the 3' end | cut before the reverse complement of the opposite primer, or before an Illumina adapter (TruSeq `AGATCGGAAGAGC`, Nextera `CTGTCTCTTATACACATCT`); partial matches of ≥ 10 bases at the read end count | Removes primer and adapter bases that follow the end of the amplicon | Happens when the amplicon is shorter than the reads; the opposite primer marks the amplicon end for any library kit, the adapter sequences catch reads with a damaged primer |
 | DADA2 `filterAndTrim` | `truncLen` | chosen from the data | Cuts every read at a fixed length | DADA2 needs reads of equal length; the position keeps the most read pairs while R1 and R2 still overlap (see below) |
 | | `maxEE` | 2 (R1 and R2) | Removes reads with more than 2 expected errors | The value used in the DADA2 tutorial; removes error-rich reads and keeps most of the rest |
 | | `truncQ` | 2 | Cuts a read at the first base with quality ≤ 2 | Q2 marks unusable bases on Illumina; such reads become too short and are removed |
@@ -363,16 +364,17 @@ For other designs, data types or analyses, [nf-core/ampliseq](https://nf-co.re/a
 
 ## Testing
 
-`-profile test` runs real reads: the V4 example data shipped with DADA2 (2×250 bp), with 515F-Y/806RB primers added and their degenerate bases resolved per read. It has 8 samples in 2 groups with a built-in difference in composition. Two other scenarios can be generated with the same script:
+`-profile test` runs real reads: the V4 example data shipped with DADA2 (2×250 bp), with 515F-Y/806RB primers added and their degenerate bases resolved per read. It has 8 samples in 2 groups with a built-in difference in composition. Three other scenarios can be generated with the same script:
 
 ```bash
 Rscript tests/make_test_data.R tests/data_spacer spacer     # 0-7 nt spacers, half of the pairs reverse-oriented
 Rscript tests/make_test_data.R tests/data_noprimer none     # primers already removed
+Rscript tests/make_test_data.R tests/data_readthrough readthrough   # 2x300 bp: reads run into primer and adapter
 nextflow run main.nf -profile docker --input tests/data_spacer/samplesheet.csv \
     --silva_db tests/data/example_train_set.fa.gz
 ```
 
-In all three, the primers are found (or correctly reported as absent), the amplicon length is estimated at 253 bp (V4), and no reads are lost to chimeras.
+In all of them, the primers are found (or correctly reported as absent), the amplicon length is estimated at 253 bp (V4), and no reads are lost to chimeras. In the read-through scenario every read is cut to exactly 253 bp and no adapter or primer remains in the ASVs.
 
 ## Citations
 

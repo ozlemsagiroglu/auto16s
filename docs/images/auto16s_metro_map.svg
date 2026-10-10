@@ -5,7 +5,7 @@
 <rect x="40" y="150" width="700" height="590" rx="22" fill="#F3F4F6"/>
 <rect x="62" y="150" width="656" height="5" rx="2.5" fill="#0072B2"/>
 <text x="62" y="192" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="15" font-weight="bold" text-anchor="start" fill="#0072B2" >1</text>
-<text x="82" y="192" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="15" font-weight="bold" text-anchor="start" fill="#111827" >Quality control and primers</text>
+<text x="82" y="192" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="15" font-weight="bold" text-anchor="start" fill="#111827" >Quality control, primers and adapters</text>
 <rect x="760" y="150" width="560" height="590" rx="22" fill="#F3F4F6"/>
 <rect x="782" y="150" width="516" height="5" rx="2.5" fill="#009E73"/>
 <text x="782" y="192" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="15" font-weight="bold" text-anchor="start" fill="#009E73" >2</text>
@@ -47,8 +47,8 @@
 <text x="470" y="523" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14.5" font-weight="normal" text-anchor="middle" fill="#6B7280" >16S primers</text>
 <circle cx="650" cy="430" r="18" fill="white"/>
 <circle cx="650" cy="430" r="13" fill="white" stroke="#0072B2" stroke-width="6"/>
-<text x="650" y="372" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#111827" >Primer removal</text>
-<text x="650" y="396" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14.5" font-weight="normal" text-anchor="middle" fill="#6B7280" >per read, then checked</text>
+<text x="650" y="372" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#111827" >Primer + adapter</text>
+<text x="650" y="396" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="14.5" font-weight="normal" text-anchor="middle" fill="#6B7280" >removal, then checked</text>
 <circle cx="860" cy="430" r="18" fill="white"/>
 <circle cx="860" cy="430" r="13" fill="white" stroke="#009E73" stroke-width="6"/>
 <text x="860" y="352" font-family="'Helvetica Neue', Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#111827" >Filter + truncate</text>
