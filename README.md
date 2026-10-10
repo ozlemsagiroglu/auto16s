@@ -78,7 +78,7 @@ The only required input is a samplesheet.
 
 5. Open `results/report/auto16s_report.html` for the samples, methods and results. For quality control, open `results/multiqc/multiqc_report.html` and read the **"DADA2 summary and warnings"** table first.
 
-Add `-resume` to rerun after a change; finished steps are reused. Add `-r v0.4.0` to run a fixed release.
+Add `-resume` to rerun after a change; finished steps are reused. Add `-r v0.5.0` to run a fixed release.
 
 ### Software stacks: Docker is not required
 
