@@ -51,6 +51,8 @@ The only required input is a samplesheet.
 8. **Alpha diversity**: Observed, Shannon and Simpson, with Wilcoxon or Kruskal-Wallis tests (rarefied).
 9. **Beta diversity**: Bray-Curtis PCoA, PERMANOVA, betadisper and pairwise PERMANOVA ([vegan](https://github.com/vegandevs/vegan); rarefied).
 10. **Differential abundance and prevalence** at genus level ([MaAsLin 3](https://huttenhower.sph.harvard.edu/maaslin3/); all reads).
+
+   With a second grouping column (`--strata`, e.g. sex), steps 8–10 run for each comparison: the main variable overall (adjusted, with the interaction test) and within each level of the second variable, and the second variable within each group ([details](#two-variables-eg-disease-and-sex)).
 11. **QC summary** ([MultiQC](https://multiqc.info/)): FastQC before and after filtering, primer detection and removal, DADA2 steps, warnings and the main figures.
 12. **Final report**: one HTML file that reads like a short study report: the samples analysed, a methods section written with the values and software versions of this run (ready to adapt for a paper), and the results with all key figures and tables. Every table and figure is also delivered as a separate file.
 
@@ -78,7 +80,7 @@ The only required input is a samplesheet.
 
 5. Open `results/report/auto16s_report.html` for the samples, methods and results. For quality control, open `results/multiqc/multiqc_report.html` and read the **"DADA2 summary and warnings"** table first.
 
-Add `-resume` to rerun after a change; finished steps are reused. Add `-r v0.5.0` to run a fixed release.
+Add `-resume` to rerun after a change; finished steps are reused. Add `-r v0.6.0` to run a fixed release.
 
 ### Software stacks: Docker is not required
 
@@ -255,6 +257,7 @@ All results are in `--outdir`. Besides the figures, every number behind a figure
 | `phyloseq/` | `phyloseq_object.rds` (all reads), `phyloseq_object_rarefied.rds`, ASV tables (raw and rarefied), taxonomy, ASV sequences (FASTA), sample metadata, depths, rarefaction curves |
 | `composition/` | Counts and relative abundances per phylum, family and genus; bar plots; genus heatmap |
 | `alpha_diversity/` | Values per sample, tests, figure |
+| `comparisons/` | Only with `--strata`: one folder per comparison, each with `alpha_diversity/`, `beta_diversity/` and `maaslin3/` (these then replace the top-level folders) |
 | `beta_diversity/` | Bray-Curtis distance matrix, PCoA coordinates, PERMANOVA, betadisper, interpretation, figures |
 | `maaslin3/` | All results and significant genera (CSV), volcano, coefficient plot, abundance and prevalence plots, raw MaAsLin 3 output |
 | `primers/` | Detected primers, detection plot, per-sample primer statistics |
@@ -285,6 +288,7 @@ genus <- read.delim("results/composition/genus_relative_abundance.tsv", row.name
 | Alpha diversity | rarefied | 2 groups: Wilcoxon rank-sum. More than 2: Kruskal-Wallis and pairwise Wilcoxon, Benjamini-Hochberg |
 | Beta diversity | rarefied | Bray-Curtis; PERMANOVA (`adonis2`) and `betadisper`. More than 2 groups: pairwise PERMANOVA, Benjamini-Hochberg |
 | Differential abundance and prevalence | all reads, genus level | MaAsLin 3 (TSS, LOG; abundance and prevalence models), Benjamini-Hochberg q-values |
+| With `--strata` (overall comparison) | as above | Alpha: linear model of the group adjusted for the second variable. Beta: PERMANOVA with marginal tests (`by = "margin"`). MaAsLin 3: second variable as covariate. Interaction: linear model, PERMANOVA with sequential terms, MaAsLin 3 with an interaction term |
 
 PERMANOVA cannot tell a shift in composition from a difference in within-group spread. The pipeline therefore reads it together with betadisper and writes the interpretation into the report. Rarefying for alpha and beta diversity, but not for differential abundance, follows current recommendations (Schloss 2024).
 
@@ -376,7 +380,7 @@ In all of them, the primers are found (or correctly reported as absent), the amp
 
 If you use auto16s, please cite it (GitHub's "Cite this repository" button gives the reference from [`CITATION.cff`](CITATION.cff)):
 
-> Sağıroğlu Ö. (2026). auto16s: automated analysis of paired-end 16S rRNA amplicon data (version 0.5.0). https://github.com/ozlemsagiroglu/auto16s
+> Sağıroğlu Ö. (2026). auto16s: automated analysis of paired-end 16S rRNA amplicon data (version 0.6.0). https://github.com/ozlemsagiroglu/auto16s
 
 and the tools it relies on:
 

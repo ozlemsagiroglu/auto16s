@@ -11,8 +11,8 @@ authors:
   - family-names: "Sağıroğlu"
     given-names: "Özlem"
     orcid: "https://orcid.org/0009-0008-3192-5256"
-version: "0.5.0"
-date-released: "2026-10-10"
+version: "0.6.0"
+date-released: "2026-10-13"
 repository-code: "https://github.com/ozlemsagiroglu/auto16s"
 url: "https://github.com/ozlemsagiroglu/auto16s"
 license: MIT
