@@ -103,3 +103,36 @@ write_session <- function(step) {
   writeLines(capture.output(sessionInfo()), paste0(step, "_sessionInfo.txt"))
   if (file.exists("Rplots.pdf")) invisible(file.remove("Rplots.pdf"))   # stray default device
 }
+
+# ---------- comparisons ----------
+# One comparison = the samples it uses (all, or those with subset_col == subset_value), the grouping
+# column, optional covariates it is adjusted for, and whether the group x covariate interaction is tested.
+# Output files of all but the main comparison get a prefix so that comparisons never overwrite each other.
+comparison_setup <- function(ps, opt) {
+  sub_col <- if (is.null(opt$subset_col)) NA else opt$subset_col
+  sub_val <- if (is.null(opt$subset_value)) NA else opt$subset_value
+  if (!is.na(sub_col)) {
+    keep <- as.character(phyloseq::sample_data(ps)[[sub_col]]) == sub_val
+    ps <- phyloseq::prune_samples(keep, ps)
+    ps <- phyloseq::prune_taxa(phyloseq::taxa_sums(ps) > 0, ps)
+  }
+  covs <- split_csv(opt$covariates)
+  prefix <- if (is.null(opt$prefix) || is.na(opt$prefix)) "" else opt$prefix
+  label <- if (is.null(opt$label) || is.na(opt$label)) "" else opt$label
+  g <- as.character(phyloseq::sample_data(ps)[[opt$group_col]])
+  n <- table(g)
+  ok <- length(n) >= 2 && all(n >= 2)
+  list(ps = ps, covs = covs, prefix = prefix, label = label, interaction = identical(opt$interaction, "true"),
+       subset = if (is.na(sub_col)) "all samples" else sprintf("%s = %s", sub_col, sub_val),
+       n = n, ok = ok, on = function(x) paste0(prefix, x))
+}
+
+# Written instead of the results when a comparison cannot be tested (fewer than 2 groups or < 2 samples in a group)
+skip_comparison <- function(cmp, step, gcol) {
+  msg <- sprintf("Not tested: %s needs at least 2 groups with at least 2 samples each (%s: %s).", step, gcol,
+                 if (length(cmp$n)) paste(names(cmp$n), cmp$n, sep = " = ", collapse = ", ") else "no samples")
+  writeLines(msg, cmp$on(paste0(step, "_not_tested.txt")))
+  message(msg)
+  write_session(cmp$on(step))
+  quit(save = "no", status = 0)
+}

@@ -24,6 +24,7 @@ The only required input is a samplesheet.
 - [What the pipeline decides from the data](#what-the-pipeline-decides-from-the-data)
 - [Outputs](#outputs)
 - [Statistics](#statistics)
+- [Two variables (e.g. disease and sex)](#two-variables-eg-disease-and-sex)
 - [Figures](#figures)
 - [Reading the report](#reading-the-report)
 - [Scope and limitations](#scope-and-limitations)
@@ -182,6 +183,7 @@ It warns about groups with fewer than 3 samples, and prints the number of sample
 |---|---|---|
 | `--outdir` | `results` | Output folder |
 | `--group_col` | `group` | Samplesheet column with the groups |
+| `--strata` | none | A second samplesheet column, e.g. `sex`; see [Two variables](#two-variables-eg-disease-and-sex) |
 | `--maaslin_reference` | alphabetically first group | Reference group for MaAsLin 3 coefficients |
 | `--silva_db` | SILVA 138.1 training set, downloaded from Zenodo | Local copy, to avoid downloading in every new run |
 | `--fw_primer`, `--rv_primer` | detected | Primer sequences (5'→3', IUPAC), only if your primers are not in the library |
@@ -288,6 +290,24 @@ PERMANOVA cannot tell a shift in composition from a difference in within-group s
 
 **Why MaAsLin 3 reports two kinds of results.** A genus can differ between groups in two ways: it is present in fewer samples of one group (*prevalence*), or it is present everywhere but less abundant (*abundance*). Older methods, including MaAsLin2, mix the two, because absent genera enter the model as zeros. MaAsLin 3 tests them separately: the abundance model uses only the samples in which the genus was found, the prevalence model only whether it was found. Every significant result is therefore labelled `abundance` or `prevalence`. Following the MaAsLin 3 defaults, abundance coefficients are tested against the median coefficient of all genera rather than against zero, which corrects for the compositional nature of relative abundances.
 
+## Two variables (e.g. disease and sex)
+
+With a second column in the samplesheet, one run tests the main variable overall and within each level of the second, and the second within each group of the main variable:
+
+```bash
+nextflow run ozlemsagiroglu/auto16s -profile docker --input samplesheet.csv --group_col disease --strata sex
+```
+
+| Comparison | Samples | Model |
+|---|---|---|
+| `disease` | all | disease adjusted for sex; plus the disease × sex interaction |
+| `disease_within_sex-female`, `disease_within_sex-male` | one sex | disease |
+| `sex_within_disease-healthy`, `sex_within_disease-patient` | one disease group | sex |
+
+Each comparison gets its own alpha diversity, beta diversity and MaAsLin 3 results in `comparisons/<name>/`, and its own section in the final report. Composition plots show the combined groups (e.g. "patient / female").
+
+**Reading the results.** A difference that is significant in women but not in men does not show that the effect differs between the sexes; the smaller subgroup may simply lack power. Whether the disease effect depends on sex is answered by the interaction test of the first comparison (linear model for alpha diversity, PERMANOVA for composition, MaAsLin 3 interaction term per genus). The interaction test needs more samples than the main effect. Each subgroup comparison uses only part of the samples; the run log and the report show the number of samples per combination, and groups with fewer than 3 samples get a warning. Within-group dispersion (betadisper) is not tested with fewer than 3 samples per group.
+
 ## Figures
 
 All figures are made with ggplot2. Colours are fixed, so a group or a taxon looks the same in every figure:
@@ -333,7 +353,7 @@ The workflow is deliberately fixed and assumes:
 - **Primers from the built-in list**, or given with `--fw_primer`/`--rv_primer`.
 - **No negative controls.** If extraction or PCR blanks were sequenced, contaminant removal (e.g. [decontam](https://github.com/benjjneb/decontam)) is standard and is not included.
 - **No phylogenetic tree,** so UniFrac and Faith's PD are not computed.
-- **A comparison between groups.** Covariates and paired or repeated-measures designs are not modelled; use the phyloseq objects in R for those.
+- **A comparison between groups**, optionally split by one second variable (`--strata`). Continuous covariates (e.g. age) and paired or repeated-measures designs are not modelled; use the phyloseq objects in R for those.
 - **One differential abundance method.** Differential abundance methods can give different results on the same data (Nearing et al. 2022). Report MaAsLin 3 results as such.
 - **Small groups.** Permutation tests cannot produce small p-values with very few samples. With 3 vs 2 samples there are only 10 distinct permutations, so p ≥ 0.1.
 

@@ -94,12 +94,26 @@ trunc    <- kv(rd("dada2_truncation.tsv"))
 track    <- rd("dada2_read_tracking.tsv")
 taxf     <- rd("taxonomic_filtering.tsv")
 depths   <- rd("sample_depths.tsv")
-alpha_t  <- rd("alpha_diversity_tests.tsv")
-beta_t   <- rd("beta_diversity_tests.tsv")
-pairw    <- rd("permanova_pairwise.tsv")
-interp   <- if (has("beta_diversity_interpretation.txt")) paste(readLines(f("beta_diversity_interpretation.txt"), warn = FALSE), collapse = " ") else ""
-m3_all   <- rdc("maaslin3_all_results.csv")
-m3_sig   <- rdc("maaslin3_significant.csv")
+strata   <- if (is.null(opt$strata) || is.na(opt$strata)) NA else opt$strata
+comps <- if (!is.null(opt$comparisons) && file.exists(opt$comparisons))
+  read.delim(opt$comparisons, colClasses = "character", na.strings = character(0)) else
+  data.frame(id = "main", label = "", group = gcol, subset_col = "NA", subset_value = "NA", covariates = "NA",
+             interaction = "false", prefix = "", publish = "", stringsAsFactors = FALSE)
+txt <- function(name) if (has(name)) paste(readLines(f(name), warn = FALSE), collapse = " ") else ""
+# results of one comparison (files carry the comparison's prefix)
+load_cmp <- function(i) {
+  cr <- as.list(comps[i, ]); p <- cr$prefix
+  m3_all <- rdc(paste0(p, "maaslin3_all_results.csv"))
+  c(cr, list(
+    alpha_t = rd(paste0(p, "alpha_diversity_tests.tsv")), beta_t = rd(paste0(p, "beta_diversity_tests.tsv")),
+    pairw = rd(paste0(p, "permanova_pairwise.tsv")), interp = txt(paste0(p, "beta_diversity_interpretation.txt")),
+    m3_all = m3_all, m3_sig = rdc(paste0(p, "maaslin3_significant.csv")), m3_int = rdc(paste0(p, "maaslin3_interaction.csv")),
+    ref = if (!is.null(m3_all) && nrow(m3_all)) sub("^.* vs ", "", m3_all$comparison[1]) else NA,
+    notes = c(txt(paste0(p, "alpha_not_tested.txt")), txt(paste0(p, "beta_not_tested.txt")),
+              txt(paste0(p, "maaslin3_not_tested.txt")), txt(paste0(p, "maaslin3_interaction_not_tested.txt")))))
+}
+C <- lapply(seq_len(nrow(comps)), load_cmp)
+multi <- length(C) > 1
 genus_ra <- rd("genus_relative_abundance.tsv")
 asv_tab  <- rd("asv_table.tsv")
 rare_tab <- rd("asv_table_rarefied.tsv")
@@ -112,7 +126,7 @@ rare_depth <- if (!is.null(rare_tab) && ncol(rare_tab) > 1) sum(rare_tab[[2]]) e
 n_asv     <- if (!is.null(asv_tab)) nrow(asv_tab) else NA
 n_genera  <- if (!is.null(genus_ra)) sum(!grepl("unclassified", genus_ra[[1]])) else NA
 excluded  <- if (!is.null(depths)) depths$sample[!as.logical(depths$in_alpha_beta)] else character(0)
-ref_level <- if (!is.null(m3_all) && nrow(m3_all)) sub("^.* vs ", "", m3_all$comparison[1]) else NA
+ref_level <- C[[1]]$ref
 input_total <- if (!is.null(track)) sum(track$input) else NA
 
 # ---------------------------------------------------------------- summary
@@ -122,24 +136,48 @@ if (!is.null(primers$warnings) && primers$warnings != "none") warn <- c(warn, pr
 if (length(excluded)) warn <- c(warn, sprintf("Left out of alpha and beta diversity (too few reads): %s", paste(excluded, collapse = ", ")))
 if (any(groups < 3)) warn <- c(warn, "At least one group has fewer than 3 samples; statistical tests have very little power.")
 
-find_lines <- character(0)
-if (!is.null(alpha_t) && nrow(alpha_t)) {
-  sig_a <- alpha_t[!is.na(alpha_t$p) & alpha_t$p < 0.05, ]
-  find_lines <- c(find_lines, if (nrow(sig_a))
-    sprintf("Alpha diversity differed between groups for %s (p &lt; 0.05).", paste(unique(sig_a$measure), collapse = ", "))
-  else "Alpha diversity (Observed, Shannon, Simpson) did not differ significantly between groups (all p &ge; 0.05).")
+findings <- function(x) {
+  out <- character(0); g <- esc(x$group)
+  a <- x$alpha_t
+  if (!is.null(a) && nrow(a)) {
+    main_a <- a[!grepl("interaction|linear model", a$test), ]
+    if (x$covariates != "NA") { adj <- a[grepl("linear model", a$test), ]; if (nrow(adj)) main_a <- adj }
+    sig_a <- main_a[!is.na(main_a$p) & main_a$p < 0.05, ]
+    out <- c(out, if (nrow(sig_a))
+      sprintf("Alpha diversity differed by %s for %s (p &lt; 0.05%s).", g, paste(unique(sig_a$measure), collapse = ", "),
+              if (x$covariates != "NA") sprintf(", adjusted for %s", esc(x$covariates)) else "")
+    else sprintf("Alpha diversity (Observed, Shannon, Simpson) did not differ significantly by %s (all p &ge; 0.05).", g))
+    ia <- a[grepl("interaction", a$test), ]
+    if (nrow(ia)) out <- c(out, sprintf("Interaction %s &times; %s on alpha diversity: %s.", g, esc(x$covariates),
+                                        paste(sprintf("%s p %s", ia$measure, pfmt(ia$p)), collapse = ", ")))
+  }
+  b <- x$beta_t
+  if (!is.null(b) && nrow(b)) {
+    pm <- b[grepl("PERMANOVA", b$test) & !grepl("interaction", b$test), ]
+    if (x$covariates != "NA" && any(grepl(paste0("^PERMANOVA \\(adonis2\\), ", x$group, " adjusted"), pm$test)))
+      pm <- pm[grepl(paste0("^PERMANOVA \\(adonis2\\), ", x$group, " adjusted"), pm$test), ]
+    pm <- pm[1, ]
+    r2 <- suppressWarnings(as.numeric(sub("^R2 = ([0-9.]+).*", "\\1", pm$statistic)))
+    out <- c(out, sprintf("Community composition (Bray-Curtis): PERMANOVA R<sup>2</sup> = %.2f, p %s, i.e. %.0f%% of the variation between samples is explained by %s%s. %s",
+                          r2, pfmt(pm$p), 100 * r2, g, if (x$covariates != "NA") sprintf(" (adjusted for %s)", esc(x$covariates)) else "", esc(x$interp)))
+    ib <- b[grepl("interaction", b$test), ]
+    if (nrow(ib)) out <- c(out, sprintf("Interaction %s &times; %s on community composition: PERMANOVA %s, p %s.",
+                                        g, esc(x$covariates), esc(ib$statistic[1]), pfmt(ib$p[1])))
+  }
+  if (!is.null(x$m3_all)) {
+    s_ <- x$m3_sig
+    na_ <- if (is.null(s_)) 0 else sum(s_$model == "abundance"); np_ <- if (is.null(s_)) 0 else sum(s_$model == "prevalence")
+    out <- c(out, sprintf("MaAsLin 3 tested %s genera: %d differed in abundance and %d in prevalence (q &lt; %g, reference group: %s%s).",
+                          num(length(unique(x$m3_all$genus))), na_, np_, qcut, esc(x$ref),
+                          if (x$covariates != "NA") sprintf(", adjusted for %s", esc(x$covariates)) else ""))
+  }
+  if (!is.null(x$m3_int)) out <- c(out, sprintf("MaAsLin 3 interaction %s &times; %s: %d genera with q &lt; %g.", g, esc(x$covariates),
+                                                  length(unique(x$m3_int$genus[as.logical(x$m3_int$significant)])), qcut))
+  notes <- x$notes[nzchar(x$notes)]
+  c(out, esc(notes))
 }
-if (!is.null(beta_t) && nrow(beta_t)) {
-  pm <- beta_t[grepl("PERMANOVA", beta_t$test), ][1, ]
-  r2 <- suppressWarnings(as.numeric(sub("^R2 = ([0-9.]+).*", "\\1", pm$statistic)))
-  find_lines <- c(find_lines, sprintf("Community composition (Bray-Curtis): PERMANOVA R<sup>2</sup> = %.2f, p %s, i.e. %.0f%% of the variation between samples is explained by %s. %s",
-                                      r2, pfmt(pm$p), 100 * r2, esc(gcol), esc(interp)))
-}
-if (!is.null(m3_all)) {
-  na_ <- if (is.null(m3_sig)) 0 else sum(m3_sig$model == "abundance"); np_ <- if (is.null(m3_sig)) 0 else sum(m3_sig$model == "prevalence")
-  find_lines <- c(find_lines, sprintf("MaAsLin 3 tested %s genera: %d differed in abundance and %d in prevalence (q &lt; %g, reference group: %s).",
-                                      num(length(unique(m3_all$genus))), na_, np_, qcut, esc(ref_level)))
-}
+find_html <- if (!multi) paste0("<ul>", paste0("<li>", findings(C[[1]]), "</li>", collapse = ""), "</ul>") else
+  paste0(vapply(C, function(x) sprintf("<h4>%s</h4><ul>%s</ul>", esc(x$label), paste0("<li>", findings(x), "</li>", collapse = "")), ""), collapse = "")
 
 summary_html <- paste0(
   '<div class="cards">',
@@ -149,7 +187,8 @@ summary_html <- paste0(
   sprintf('<div class="card"><div class="v">%s</div><div class="k">ASVs</div><div class="s">%s named genera</div></div>', num(n_asv), num(n_genera)),
   sprintf('<div class="card"><div class="v">%s</div><div class="k">rarefaction depth</div><div class="s">reads per sample for diversity</div></div>', num(rare_depth)),
   '</div>',
-  "<h3>Main results</h3><ul>", paste0("<li>", find_lines, "</li>", collapse = ""), "</ul>",
+  "<h3>Main results</h3>", find_html,
+  if (multi) '<p class="note">With several comparisons, a result that is significant in one subgroup but not in another does not show that the subgroups differ; that question is answered by the interaction test of the first comparison.</p>' else "",
   if (length(warn)) paste0('<div class="warn"><b>Check:</b><ul>', paste0("<li>", esc(warn), "</li>", collapse = ""), "</ul></div>")
   else '<p class="ok">No QC warnings.</p>',
   '<p class="note">The statements above report the test results only; their biological interpretation is left to the reader.</p>')
@@ -163,6 +202,12 @@ if (!is.null(depths)) samp <- merge(samp, data.frame(sample = depths$sample, rea
 names(samp)[names(samp) == "input"] <- "read_pairs_in"; names(samp)[names(samp) == "nonchim"] <- "read_pairs_final"
 names(samp)[names(samp) == "retained_pct"] <- "kept_pct"
 samp <- samp[order(samp[[gcol]], samp$sample), ]
+design_df <- NULL
+if (!is.na(strata) && strata %in% names(sheet)) {
+  tab <- table(sheet[[gcol]], sheet[[strata]])
+  design_df <- data.frame(rownames(tab), unclass(as.data.frame.matrix(tab)), check.names = FALSE)
+  names(design_df)[1] <- sprintf("%s \\ %s", gcol, strata)
+}
 
 # ---------------------------------------------------------------- methods
 pr_txt <- if (identical(primers$status, "none")) {
@@ -182,6 +227,8 @@ methods_html <- paste0(
                  esc(opt$permutations), ver("vegan")), "</p>",
   "<p>", sprintf("Differential abundance and prevalence at genus level were tested on the unrarefied counts with MaAsLin 3 %s (total-sum scaling, log transformation, genera present in at least %s%% of samples, reference group: %s). MaAsLin 3 fits an abundance model (samples in which the genus was found) and a prevalence model (presence/absence); associations with a Benjamini-Hochberg q-value &lt; %g were considered significant. Figures were made with ggplot2 %s.",
                  ver("maaslin3"), num(100 * as.numeric(opt$min_prevalence)), esc(ref_level), qcut, ver("ggplot2")), "</p>",
+  if (multi) paste0("<p>", sprintf("Alpha diversity, beta diversity and differential abundance were tested in %d comparisons: %s across all samples, adjusted for %s, with the %s &times; %s interaction tested in a separate model (linear model for alpha diversity, PERMANOVA with sequential terms for beta diversity, MaAsLin 3 with an interaction term); %s within each level of %s; and %s within each %s group. Each comparison was corrected for multiple testing on its own.",
+                 length(C), esc(gcol), esc(strata), esc(gcol), esc(strata), esc(gcol), esc(strata), esc(strata), esc(gcol)), "</p>") else "",
   "<p>", sprintf("The analysis was run with the auto16s pipeline %s (Nextflow %s). The QC summary report was made with MultiQC %s.",
                  esc(opt$pipeline_version), esc(opt$nextflow_version), esc(multiqc_ver)), "</p>")
 
@@ -199,7 +246,7 @@ param_df <- data.frame(
 top_genera <- NULL
 if (!is.null(genus_ra)) {
   ra <- as.matrix(genus_ra[, -1, drop = FALSE]); rownames(ra) <- genus_ra[[1]]
-  g  <- setNames(sheet[[gcol]], sheet$sample)[colnames(ra)]
+  g  <- setNames(if (!is.na(strata)) paste(sheet[[gcol]], sheet[[strata]], sep = " / ") else sheet[[gcol]], sheet$sample)[colnames(ra)]
   means <- sapply(split(seq_len(ncol(ra)), g), function(ix) rowMeans(ra[, ix, drop = FALSE]))
   if (is.null(dim(means))) means <- matrix(means, ncol = 1, dimnames = list(rownames(ra), unique(g)))
   o <- order(-rowMeans(means))
@@ -207,14 +254,54 @@ if (!is.null(genus_ra)) {
   names(top_genera)[-1] <- paste0(names(top_genera)[-1], " (%)")
   top_genera <- head(top_genera, 15)
 }
-m3_tab <- NULL
-if (!is.null(m3_sig) && nrow(m3_sig)) {
-  m3_tab <- m3_sig[order(m3_sig$model, m3_sig$qval_individual), intersect(c("genus", "model", "comparison", "coef", "stderr", "qval_individual", "N_not_zero"), names(m3_sig))]
-  names(m3_tab)[names(m3_tab) == "qval_individual"] <- "q"
-  names(m3_tab)[names(m3_tab) == "N_not_zero"] <- "samples_with_genus"
+# alpha, beta and MaAsLin 3 results of one comparison
+cmp_results <- function(x, num_prefix) {
+  p <- x$prefix; h <- function(k, t) sprintf('<h%d>%s %s</h%d>', if (multi) 4 else 3, k, t, if (multi) 4 else 3)
+  m3_tab <- NULL
+  if (!is.null(x$m3_sig) && nrow(x$m3_sig)) {
+    m3_tab <- x$m3_sig[order(x$m3_sig$model, x$m3_sig$qval_individual),
+                       intersect(c("genus", "model", "comparison", "coef", "stderr", "qval_individual", "N_not_zero"), names(x$m3_sig))]
+    names(m3_tab)[names(m3_tab) == "qval_individual"] <- "q"; names(m3_tab)[names(m3_tab) == "N_not_zero"] <- "samples_with_genus"
+  }
+  m3_int <- NULL
+  if (!is.null(x$m3_int) && nrow(x$m3_int)) {
+    m3_int <- x$m3_int[as.logical(x$m3_int$significant), intersect(c("genus", "model", "name", "coef", "qval_individual"), names(x$m3_int))]
+    names(m3_int)[names(m3_int) == "qval_individual"] <- "q"
+  }
+  alpha_show <- x$alpha_t
+  if (!is.null(alpha_show)) alpha_show <- alpha_show[, colSums(!is.na(alpha_show)) > 0, drop = FALSE]
+  notes <- x$notes[nzchar(x$notes)]
+  paste0(
+    if (length(notes)) paste0('<div class="warn">', paste(esc(notes), collapse = "<br>"), '</div>') else "",
+    h(paste0(num_prefix, ".1"), "Alpha diversity"),
+    figure(paste0(p, "alpha_diversity.png"), sprintf("Alpha diversity per group (rarefied to %s reads).", num(rare_depth))),
+    table_html(alpha_show, "Alpha diversity tests."),
+    h(paste0(num_prefix, ".2"), "Beta diversity"),
+    sprintf("<p>%s</p>", esc(x$interp)),
+    figure(paste0(p, "pcoa_bray.png"), "Principal coordinates analysis of Bray-Curtis dissimilarities. Diamonds mark the group centroids; lines join each sample to its centroid; dashed outlines show the area covered by each group."),
+    figure(paste0(p, "betadisper_bray.png"), "Distance of each sample to its group centroid (within-group dispersion, betadisper)."),
+    table_html(x$beta_t, "PERMANOVA and betadisper results."),
+    table_html(x$pairw, "Pairwise PERMANOVA between groups."),
+    h(paste0(num_prefix, ".3"), "Differential abundance and prevalence (MaAsLin 3)"),
+    if (is.null(m3_tab)) sprintf("<p>No genus differed significantly between groups (q &lt; %g).</p>", qcut)
+    else table_html(m3_tab, sprintf("Genera with q &lt; %g. abundance: differs in abundance where present; prevalence: differs in the share of samples in which it was found. Positive coefficient: higher than in %s.", qcut, esc(x$ref)), max_rows = 40),
+    if (!is.null(x$m3_int)) {
+      if (is.null(m3_int) || !nrow(m3_int)) sprintf("<p>Interaction %s &times; %s: no genus with q &lt; %g.</p>", esc(x$group), esc(x$covariates), qcut)
+      else table_html(m3_int, sprintf("Genera whose %s difference depends on %s (interaction term, q &lt; %g).", esc(x$group), esc(x$covariates), qcut), max_rows = 40)
+    } else "",
+    figure(paste0(p, "maaslin3_volcano.png"), "MaAsLin 3 coefficients against significance, separately for the abundance and the prevalence model."),
+    figure(paste0(p, "maaslin3_coefficients.png"), "Coefficients (with standard error) of the significant genera."),
+    figure(paste0(p, "maaslin3_abundance_boxplots.png"), "Relative abundance of the significant abundance hits, in the samples where the genus was found."),
+    figure(paste0(p, "maaslin3_prevalence_bars.png"), "Share of samples per group in which the significant prevalence hits were found."))
 }
-alpha_show <- alpha_t
-if (!is.null(alpha_show)) alpha_show <- alpha_show[, colSums(!is.na(alpha_show)) > 0, drop = FALSE]
+comparisons_html <- if (!multi) {
+  r <- cmp_results(C[[1]], "4.4")
+  r <- sub("<h3>4.4.1 ", "<h3>4.4 ", r, fixed = TRUE); r <- sub("<h3>4.4.2 ", "<h3>4.5 ", r, fixed = TRUE)
+  sub("<h3>4.4.3 ", "<h3>4.6 ", r, fixed = TRUE)
+} else
+  paste0(sprintf("<p>The following %d comparisons were tested separately (see Methods). Sections 4.1-4.3 apply to all of them.</p>", length(C)),
+         paste0(vapply(seq_along(C), function(i) paste0(sprintf('<h3 id="cmp-%d">4.%d %s</h3>', i, i + 3, esc(C[[i]]$label)),
+                                                        cmp_results(C[[i]], sprintf("4.%d", i + 3))), ""), collapse = ""))
 
 results_html <- paste0(
   '<h3 id="r-qc">4.1 Read processing</h3>',
@@ -240,24 +327,9 @@ results_html <- paste0(
   figure("genus_barplot_groups.png", "Mean genus composition per group."),
   figure("genus_barplot_samples.png", "Genus composition per sample."),
   figure("genus_heatmap.png", "Relative abundance of the most abundant genera per sample (log10 scale)."),
-  '<h3 id="r-alpha">4.4 Alpha diversity</h3>',
-  figure("alpha_diversity.png", sprintf("Alpha diversity per group (rarefied to %s reads).", num(rare_depth))),
-  table_html(alpha_show, "Alpha diversity tests."),
-  '<h3 id="r-beta">4.5 Beta diversity</h3>',
-  sprintf("<p>%s</p>", esc(interp)),
-  figure("pcoa_bray.png", "Principal coordinates analysis of Bray-Curtis dissimilarities. Diamonds mark the group centroids; lines join each sample to its centroid; dashed outlines show the area covered by each group."),
-  figure("betadisper_bray.png", "Distance of each sample to its group centroid (within-group dispersion, betadisper)."),
-  table_html(beta_t, "PERMANOVA and betadisper results."),
-  table_html(pairw, "Pairwise PERMANOVA between groups."),
-  '<h3 id="r-da">4.6 Differential abundance and prevalence (MaAsLin 3)</h3>',
-  if (is.null(m3_tab)) sprintf("<p>No genus differed significantly between groups (q &lt; %g).</p>", qcut)
-  else table_html(m3_tab, sprintf("Genera with q &lt; %g. abundance: differs in abundance where present; prevalence: differs in the share of samples in which it was found. Positive coefficient: higher than in %s.", qcut, esc(ref_level)), max_rows = 40),
-  figure("maaslin3_volcano.png", "MaAsLin 3 coefficients against significance, separately for the abundance and the prevalence model."),
-  figure("maaslin3_coefficients.png", "Coefficients (with standard error) of the significant genera."),
-  figure("maaslin3_abundance_boxplots.png", "Relative abundance of the significant abundance hits, in the samples where the genus was found."),
-  figure("maaslin3_prevalence_bars.png", "Share of samples per group in which the significant prevalence hits were found."))
+  comparisons_html)
 
-files_df <- data.frame(
+files_df0 <- data.frame(
   folder = c("report/", "multiqc/", "phyloseq/", "composition/", "alpha_diversity/", "beta_diversity/", "maaslin3/", "dada2/", "primers/", "taxonomy/", "fastqc/", "pipeline_info/"),
   content = c("This report", "QC summary report (MultiQC)", "phyloseq objects (all reads and rarefied), ASV tables, taxonomy, ASV sequences, metadata",
               "Counts and relative abundances per phylum, family and genus; figures", "Values per sample, tests, figure",
@@ -265,6 +337,11 @@ files_df <- data.frame(
               "Read tracking, truncation, error models, ASV lengths", "Detected primers and per-sample statistics",
               "SILVA assignment per ASV", "FastQC reports before and after filtering", "Nextflow execution report, timeline, trace"),
   stringsAsFactors = FALSE)
+files_df <- if (!multi) files_df0 else rbind(
+  files_df0[!files_df0$folder %in% c("alpha_diversity/", "beta_diversity/", "maaslin3/"), ],
+  data.frame(folder = paste0("comparisons/", comps$id, "/"),
+             content = paste0(comps$label, ": alpha_diversity/, beta_diversity/, maaslin3/",
+                              ifelse(nzchar(comps$prefix), sprintf(" (file names start with %s)", comps$prefix), ""))))
 sw_df <- data.frame(software = c("auto16s", "Nextflow", "FastQC", "R", "DADA2", "phyloseq", "vegan", "MaAsLin 3", "ggplot2", "MultiQC"),
                     version = c(opt$pipeline_version, opt$nextflow_version, fastqc_ver, ver("R"), ver("dada2"), ver("phyloseq"),
                                 ver("vegan"), ver("maaslin3"), ver("ggplot2"), multiqc_ver), stringsAsFactors = FALSE)
@@ -310,6 +387,7 @@ html <- paste0(
   '<h2 id="summary">1 Summary</h2>', summary_html,
   '<h2 id="samples">2 Samples</h2>',
   sprintf("<p>%d samples in %d groups (column <code>%s</code>): %s.</p>", n_samples, length(groups), esc(gcol), esc(grp_txt)),
+  if (!is.null(design_df)) table_html(design_df, sprintf("Number of samples per combination of %s and %s.", esc(gcol), esc(strata))) else "",
   table_html(samp, "Samples, metadata from the samplesheet, and read pairs at the start and the end of processing.", max_rows = 500),
   '<h2 id="methods">3 Methods</h2>', methods_html,
   table_html(param_df, "Values used in this run (chosen automatically unless set by the user)."),

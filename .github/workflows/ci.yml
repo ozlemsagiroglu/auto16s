@@ -54,6 +54,20 @@ jobs:
           done
           grep -qP "^status\tdetected" results/primers/primers.tsv
 
+      - name: Run with a second grouping column (--strata)
+        run: nextflow run . -profile test,docker --r_container auto16s-r:ci --strata sex --outdir results_strata -resume
+
+      - name: Check the comparisons
+        run: |
+          for c in group group_within_sex-female group_within_sex-male sex_within_group-control sex_within_group-treatment; do
+            test -d "results_strata/comparisons/$c/beta_diversity" || { echo "missing comparison: $c"; exit 1; }
+          done
+          grep -q "interaction" results_strata/comparisons/group/beta_diversity/beta_diversity_tests.tsv
+          test -s results_strata/comparisons/group/maaslin3/maaslin3_all_results.csv
+          ls results_strata/comparisons/group/maaslin3/
+          cat results_strata/comparisons/group/maaslin3/maaslin3_interaction*.{csv,txt} 2>/dev/null | head -5 || true
+          test -s results_strata/report/auto16s_report.html
+
       - name: Report failed tasks
         if: failure()
         run: .github/scripts/report_failed_tasks.sh

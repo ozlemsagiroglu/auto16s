@@ -8,14 +8,15 @@ process FINAL_REPORT {
     input:
     path files, stageAs: 'inputs/*'
     path samplesheet
+    path comparisons
 
     output:
     path 'auto16s_report.html', emit: report
 
     script:
     """
-    final_report.R --inputs inputs --samplesheet ${samplesheet} --out auto16s_report.html \\
-        --group_col '${params.group_col}' --qval ${params.maaslin_qval} --min_prevalence ${params.maaslin_min_prevalence} \\
+    final_report.R --inputs inputs --samplesheet ${samplesheet} --comparisons ${comparisons} --out auto16s_report.html \\
+        --group_col '${params.group_col}' --strata '${params.strata ?: 'NA'}' --qval ${params.maaslin_qval} --min_prevalence ${params.maaslin_min_prevalence} \\
         --max_ee ${params.max_ee} --min_overlap ${params.min_overlap} --permutations ${params.permutations} --seed ${params.seed} \\
         --silva_db '${file(params.silva_db).name}' --pipeline_version '${workflow.manifest.version}' \\
         --nextflow_version '${workflow.nextflow.version}' --run_name '${workflow.runName}'

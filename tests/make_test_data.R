@@ -88,5 +88,7 @@ file.copy(ex("example_train_set.fa.gz"), file.path(out, "example_train_set.fa.gz
 write.csv(data.frame(sample = design$sample,
                      fastq_1 = paste0(design$sample, "_R1.fastq.gz"),
                      fastq_2 = paste0(design$sample, "_R2.fastq.gz"),
-                     group = design$group), file.path(out, "samplesheet.csv"), row.names = FALSE, quote = FALSE)
+                     group = design$group,
+                     sex = rep(c("female", "male"), length.out = nrow(design))),   # for --strata sex
+          file.path(out, "samplesheet.csv"), row.names = FALSE, quote = FALSE)
 cat("Test data written to", out, "\n")

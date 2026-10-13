@@ -3,14 +3,19 @@
 # MaAsLin 3 fits two models per genus:
 #   abundance  - is the genus more/less abundant where it is present? (linear model on log relative abundance)
 #   prevalence - is the genus present in more/fewer samples?         (logistic model on presence/absence)
+# With covariates the group is tested adjusted for them; with --interaction true a second model
+# (group * first covariate) tests whether the group difference depends on the covariate.
 .script <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1])
 source(file.path(dirname(normalizePath(.script)), "utils.R"))
 opt <- parse_args()
 suppressPackageStartupMessages({ library(phyloseq); library(maaslin3); library(ggplot2); library(ggrepel) })
 
-ps   <- readRDS(opt$ps)
-gcol <- opt$group_col
+gcol_in <- opt$group_col
 qcut <- as.numeric(opt$qval)
+cmp  <- comparison_setup(readRDS(opt$ps), opt)
+if (!cmp$ok) skip_comparison(cmp, "maaslin3", gcol_in)
+ps <- cmp$ps; on <- cmp$on
+ttl <- function(x) if (nzchar(cmp$label)) paste0(x, ": ", cmp$label) else x
 
 # ---------- genus table ----------
 ps_genus <- tax_glom(ps, taxrank = "Genus", NArm = FALSE)
@@ -25,6 +30,11 @@ taxa_names(ps_genus) <- feat
 
 otu <- as(otu_table(ps_genus), "matrix"); if (taxa_are_rows(ps_genus)) otu <- t(otu)   # samples x genera
 md  <- data.frame(sample_data(ps_genus), check.names = FALSE, stringsAsFactors = FALSE)
+# syntactic column names for the model formula
+gcol <- make.names(gcol_in); names(md)[names(md) == gcol_in] <- gcol
+covs <- cmp$covs[vapply(cmp$covs, function(cv) length(unique(md[[cv]])) > 1, TRUE)]
+for (cv in covs) { nm <- make.names(cv); md[[nm]] <- factor(as.character(md[[cv]])); if (nm != cv) md[[cv]] <- NULL }
+covs <- make.names(covs)
 
 lv  <- sort(unique(md[[gcol]]))
 ref <- if (!is.na(opt$reference)) opt$reference else lv[1]
@@ -34,20 +44,46 @@ message("Reference level: ", ref)
 
 # ---------- MaAsLin 3 ----------
 # Only arguments known to the installed version are passed (they differ between releases).
-args <- list(input_data = as.data.frame(otu), input_metadata = md, output = "maaslin3_output",
-             fixed_effects = gcol, reference = paste0(gcol, ",", ref),
-             normalization = "TSS", transform = "LOG",
-             min_prevalence = as.numeric(opt$min_prevalence), max_significance = qcut,
-             plot_summary_plot = FALSE, plot_associations = FALSE, cores = 1, verbosity = "WARN")
-args <- args[names(args) %in% names(formals(maaslin3::maaslin3))]
-fit  <- do.call(maaslin3::maaslin3, args)
-
+run_maaslin <- function(out, ...) {
+  args <- c(list(input_data = as.data.frame(otu), input_metadata = md, output = out,
+                 normalization = "TSS", transform = "LOG",
+                 min_prevalence = as.numeric(opt$min_prevalence), max_significance = qcut,
+                 plot_summary_plot = FALSE, plot_associations = FALSE, cores = 1, verbosity = "WARN"), list(...))
+  args <- args[names(args) %in% names(formals(maaslin3::maaslin3))]
+  do.call(maaslin3::maaslin3, args)
+}
 take <- function(x, model) {
   if (is.null(x) || is.null(x$results) || !nrow(x$results)) return(NULL)
   r <- as.data.frame(x$results); r$model <- model; r
 }
+fit <- tryCatch(run_maaslin(on("maaslin3_output"), fixed_effects = c(gcol, covs), reference = paste0(gcol, ",", ref)),
+                error = function(e) e)
+if (inherits(fit, "error")) {
+  msg <- paste("MaAsLin 3 could not be fitted for this comparison:", conditionMessage(fit))
+  writeLines(msg, on("maaslin3_not_tested.txt")); message(msg); dir.create(on("maaslin3_output"), showWarnings = FALSE)
+  write_session(on("maaslin3")); quit(save = "no", status = 0)
+}
 res <- rbind(take(fit$fit_data_abundance, "abundance"), take(fit$fit_data_prevalence, "prevalence"))
 if (is.null(res)) stop("MaAsLin 3 returned no results")
+
+# interaction: does the group difference depend on the first covariate?
+if (cmp$interaction && length(covs)) {
+  fi <- tryCatch(run_maaslin(on("maaslin3_interaction_output"), formula = paste("~", gcol, "*", covs[1])), error = function(e) e)
+  if (inherits(fi, "error")) {
+    writeLines(paste("Interaction model could not be fitted:", conditionMessage(fi)), on("maaslin3_interaction_not_tested.txt"))
+  } else {
+    ri <- rbind(take(fi$fit_data_abundance, "abundance"), take(fi$fit_data_prevalence, "prevalence"))
+    ri <- if (is.null(ri)) NULL else ri[grepl(":", ri$name, fixed = TRUE) | grepl(":", ri$metadata, fixed = TRUE), ]
+    if (!is.null(ri) && nrow(ri)) {
+      ri <- merge(ri, lookup, by = "feature", all.x = TRUE, sort = FALSE)
+      ri$significant <- !is.na(ri$qval_individual) & ri$qval_individual < qcut & is.na(ri$error)
+      ri <- ri[order(ri$model, ri$qval_individual), ]
+      write.csv(ri[, intersect(c("genus", "family", "phylum", "model", "name", "coef", "stderr", "pval_individual", "qval_individual",
+                                 "N", "N_not_zero", "error", "significant"), colnames(ri))], on("maaslin3_interaction.csv"), row.names = FALSE)
+      message(sprintf("Interaction %s x %s: %d genera with q < %g", gcol, covs[1], length(unique(ri$genus[ri$significant])), qcut))
+    } else writeLines("Interaction model returned no interaction terms.", on("maaslin3_interaction_not_tested.txt"))
+  }
+}
 res <- merge(res, lookup, by = "feature", all.x = TRUE, sort = FALSE)
 res <- res[res$metadata == gcol, ]
 res$comparison  <- paste(res$value, "vs", ref)
@@ -57,16 +93,16 @@ res <- res[order(res$model, res$qval_individual), ]
 cols <- intersect(c("genus", "family", "phylum", "resolved", "model", "comparison", "coef", "stderr",
                     "pval_individual", "qval_individual", "qval_joint", "N", "N_not_zero", "error", "significant"),
                   colnames(res))
-write.csv(res[, cols], "maaslin3_all_results.csv", row.names = FALSE)
+write.csv(res[, cols], on("maaslin3_all_results.csv"), row.names = FALSE)
 sig <- res[res$significant, ]
-write.csv(sig[, cols], "maaslin3_significant.csv", row.names = FALSE)
+write.csv(sig[, cols], on("maaslin3_significant.csv"), row.names = FALSE)
 message(sprintf("%d genera tested; significant (q < %g): %d abundance, %d prevalence",
                 length(unique(res$feature)), qcut, sum(sig$model == "abundance"), sum(sig$model == "prevalence")))
 
 mqc <- if (nrow(sig)) sig[, c("genus", "model", "comparison", "coef", "qval_individual")] else
   data.frame(genus = "none", model = NA, comparison = NA, coef = NA, qval_individual = NA)
 mqc$coef <- round(mqc$coef, 3); mqc$qval_individual <- signif(mqc$qval_individual, 3)
-write_mqc_table(mqc, "maaslin3_significant_mqc.tsv", "maaslin3", "Differential abundance and prevalence (MaAsLin 3, genus)",
+write_mqc_table(mqc, on("maaslin3_significant_mqc.tsv"), "maaslin3", "Differential abundance and prevalence (MaAsLin 3, genus)",
                 sprintf("Significant genera (q < %g). abundance: more/less abundant where present; prevalence: present in more/fewer samples. coef > 0: higher than in the reference group (%s).", qcut, ref))
 
 model_lab <- c(abundance = "Abundance (where present)", prevalence = "Prevalence (present / absent)")
@@ -107,11 +143,11 @@ p <- ggplot(ok, aes(coef, -log10(qval_individual), colour = direction)) +
                       labels = c(higher = "higher than reference", lower = "lower than reference", `n.s.` = "not significant")) +
   scale_x_continuous(expand = expansion(mult = 0.05)) +
   facet_wrap(~ panel, scales = "free_x") +
-  labs(title = "Differential abundance and prevalence (MaAsLin 3, genus level)",
+  labs(title = ttl("Differential abundance and prevalence (MaAsLin 3, genus level)"),
        subtitle = sprintf("%s | reference: %s | dashed line: q = %g", unique(ok$comparison)[1], ref, qcut),
        x = "Coefficient", y = "-log10(q)", colour = NULL) +
   theme_amp() + theme(legend.position = "bottom", panel.spacing = unit(1.2, "lines"))
-save_fig(p, "maaslin3_volcano", 10, 6, mqc = TRUE)
+save_fig(p, on("maaslin3_volcano"), 10, 6, mqc = TRUE)
 
 if (nrow(sig)) {
   # ---------- coefficient plot ----------
@@ -125,10 +161,10 @@ if (nrow(sig)) {
     scale_colour_manual(values = c(`TRUE` = "#D55E00", `FALSE` = "#0072B2"), guide = "none") +
     facet_wrap(~ panel, scales = "free_x") +
     scale_y_discrete(labels = function(x) wrap_text(x, 40)) +
-    labs(title = "Significant genera",
+    labs(title = ttl("Significant genera"),
          subtitle = sprintf("Coefficient +/- SE; positive = higher than %s (q < %g)", ref, qcut),
          x = "MaAsLin 3 coefficient", y = NULL) + theme_amp()
-  save_fig(p, "maaslin3_coefficients", 10, max(4, 0.28 * length(unique(top$genus)) + 2), mqc = TRUE)
+  save_fig(p, on("maaslin3_coefficients"), 10, max(4, 0.28 * length(unique(top$genus)) + 2), mqc = TRUE)
 
   rel <- 100 * sweep(otu, 1, rowSums(otu), "/")
   grp <- factor(md[rownames(rel), gcol], levels = levels(md[[gcol]]))
@@ -146,11 +182,11 @@ if (nrow(sig)) {
       scale_y_log10(labels = function(x) format(x, scientific = FALSE, drop0trailing = TRUE)) +
       scale_fill_manual(values = group_palette(levels(grp))) + scale_colour_manual(values = group_palette(levels(grp))) +
       facet_wrap(~ genus, scales = "free_y", ncol = 4, labeller = wrap_labeller(24)) +
-      labs(title = "Abundance hits: relative abundance where present",
+      labs(title = ttl("Abundance hits: relative abundance where present"),
            subtitle = sprintf("%d genera with the lowest q-value (max. 12); samples without the genus are not shown; log scale", length(fa)),
            x = NULL, y = "Relative abundance (%)") +
       theme_amp() + theme(legend.position = "none", axis.text.x = element_text(angle = 30, hjust = 1))
-    save_fig(p, "maaslin3_abundance_boxplots", 11, 2.8 * ceiling(length(fa) / 4) + 1.6, mqc = TRUE)
+    save_fig(p, on("maaslin3_abundance_boxplots"), 11, 2.8 * ceiling(length(fa) / 4) + 1.6, mqc = TRUE)
   }
 
   # ---------- prevalence hits: share of samples with the genus ----------
@@ -168,12 +204,12 @@ if (nrow(sig)) {
       scale_fill_manual(values = group_palette(levels(grp))) +
       scale_y_continuous(limits = c(0, 110), breaks = seq(0, 100, 25)) +
       facet_wrap(~ genus, ncol = 4, labeller = wrap_labeller(24)) +
-      labs(title = "Prevalence hits: share of samples in which the genus is present",
+      labs(title = ttl("Prevalence hits: share of samples in which the genus is present"),
            subtitle = sprintf("%d genera with the lowest q-value (max. 12)", length(fp)),
            x = NULL, y = "Samples with the genus (%)") +
       theme_amp() + theme(legend.position = "none", axis.text.x = element_text(angle = 30, hjust = 1))
-    save_fig(p, "maaslin3_prevalence_bars", 11, 2.8 * ceiling(length(fp) / 4) + 1.6, mqc = TRUE)
+    save_fig(p, on("maaslin3_prevalence_bars"), 11, 2.8 * ceiling(length(fp) / 4) + 1.6, mqc = TRUE)
   }
 }
 
-write_session("maaslin3")
+write_session(on("maaslin3"))

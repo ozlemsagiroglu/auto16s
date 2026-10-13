@@ -16,7 +16,7 @@ process COMPOSITION {
 
     script:
     """
-    composition.R --ps ${ps} --group_col '${params.group_col}' --top_n ${params.top_n}
+    composition.R --ps ${ps} --group_col '${params.group_col}' --strata '${params.strata ?: 'NA'}' --top_n ${params.top_n}
     """
 
     stub:

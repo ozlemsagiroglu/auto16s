@@ -14,6 +14,9 @@ plural <- c(Phylum = "phyla", Family = "families", Genus = "genera")
 
 tax_table(ps) <- tax_table(fix_tax(as(tax_table(ps), "matrix")))
 grp  <- setNames(as.character(sample_data(ps)[[gcol]]), sample_names(ps))
+# with a second grouping column (--strata), bars and heatmap are split by both, e.g. "patient / female"
+strata <- if (is.null(opt$strata) || is.na(opt$strata)) NA else opt$strata
+if (!is.na(strata)) grp <- setNames(paste(grp, as.character(sample_data(ps)[[strata]]), sep = " / "), sample_names(ps))
 glev <- sort(unique(grp))
 
 # taxa x samples relative abundance at one rank

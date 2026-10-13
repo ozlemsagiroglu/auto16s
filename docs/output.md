@@ -98,6 +98,10 @@ All paths are relative to `--outdir` (default `results/`). Figures are saved as 
 
 Genera without a SILVA genus assignment are named after the nearest assigned rank, e.g. `Lachnospiraceae (unclassified)`; the column `resolved` is `FALSE` for them. Do not report them as named genera.
 
+## `comparisons/` (only with `--strata`)
+
+One folder per comparison (see the README, "Two variables"), each with `alpha_diversity/`, `beta_diversity/` and `maaslin3/` as described above. The overall comparison (folder named after `--group_col`) also contains the interaction tests: rows marked "interaction" in `alpha_diversity_tests.tsv` and `beta_diversity_tests.tsv`, and `maaslin3_interaction.csv`. File names in the subgroup folders start with the comparison name so that files from different comparisons can be kept together. Without `--strata`, the folders `alpha_diversity/`, `beta_diversity/` and `maaslin3/` are at the top level.
+
 ## `fastqc/` and `pipeline_info/`
 
 | File | Content |

@@ -39,6 +39,9 @@ def helpMessage() {
 
     Optional (sensible defaults; change only if needed)
       --group_col        Samplesheet column with the groups to compare   [${params.group_col}]
+      --strata           Second column (e.g. sex): compares ${params.group_col} overall (adjusted for it, with the
+                         interaction test), ${params.group_col} within each of its levels, and its levels within
+                         each ${params.group_col} group                                    [none]
       --silva_db         DADA2 SILVA training set (local path or URL)     [SILVA 138.1, Zenodo]
       --outdir           Output folder                                    [${params.outdir}]
       --maaslin_reference  Reference group for MaAsLin3                   [alphabetically first]
@@ -81,7 +84,7 @@ def readSamplesheet(path) {
         .collect { r -> r.collectEntries { k, v -> [(k.replace('﻿', '').trim()): v?.trim()] } }   // Excel BOM
         .findAll { r -> r.values().any { v -> v } }                                                     // empty lines
     if (!rows) error "Samplesheet ${path} is empty."
-    def absent = ['sample', 'fastq_1', 'fastq_2', params.group_col] - rows[0].keySet()
+    def absent = ['sample', 'fastq_1', 'fastq_2', params.group_col] + (params.strata ? [params.strata] : []) - rows[0].keySet()
     if (absent) error "Samplesheet is missing column(s): ${absent.join(', ')}. The first line must be: sample,fastq_1,fastq_2,${params.group_col}"
 
     def seen = [] as Set
@@ -91,13 +94,24 @@ def readSamplesheet(path) {
         if (!seen.add(row.sample)) error "Duplicate sample name: ${row.sample}"
         if (!row.fastq_1 || !row.fastq_2) error "Sample ${row.sample}: fastq_1 and fastq_2 are both required"
         if (!row[params.group_col]) error "Sample ${row.sample}: empty '${params.group_col}'"
-        [[id: row.sample, group: row[params.group_col]], [resolveFastq(sheet, row.fastq_1), resolveFastq(sheet, row.fastq_2)]]
+        if (params.strata && !row[params.strata]) error "Sample ${row.sample}: empty '${params.strata}'"
+        [[id: row.sample, group: row[params.group_col], strata: params.strata ? row[params.strata] : null],
+         [resolveFastq(sheet, row.fastq_1), resolveFastq(sheet, row.fastq_2)]]
     }
     def groups = samples.collect { s -> s[0].group }.unique()
     if (groups.size() < 2) error "'${params.group_col}' must contain at least 2 groups (found: ${groups.join(', ')})"
     def sizes = groups.collect { g -> [g, samples.count { s -> s[0].group == g }] }
     sizes.findAll { gs -> gs[1] < 3 }.each { gs -> log.warn "Group '${gs[0]}' has only ${gs[1]} sample(s); statistical tests will have very little power." }
     log.info "Samplesheet: ${samples.size()} samples; groups: ${sizes.collect { gs -> "${gs[0]} (${gs[1]})" }.join(', ')}"
+    if (params.strata) {
+        if (params.strata == params.group_col) error "--strata must be a different column than --group_col"
+        def slev = samples.collect { s -> s[0].strata }.unique()
+        if (slev.size() < 2) error "'${params.strata}' must contain at least 2 values (found: ${slev.join(', ')})"
+        def cells = []
+        groups.each { g -> slev.each { v -> cells << ["${g} / ${v}", samples.count { s -> s[0].group == g && s[0].strata == v }] } }
+        log.info "Design (${params.group_col} / ${params.strata}): ${cells.collect { c -> "${c[0]} (${c[1]})" }.join(', ')}"
+        cells.findAll { c -> c[1] < 3 }.each { c -> log.warn "'${c[0]}' has only ${c[1]} sample(s); comparisons within it will have very little power." }
+    }
 
     // comma-separated copy with absolute paths for the R steps
     def cols = rows[0].keySet() as List
@@ -169,6 +183,50 @@ def filteredPairs(ch) {
         .map { id, files -> [[id: id], files.sort { f -> f.name }] }      // _F_ sorts before _R_
 }
 
+// The comparisons to run. Without --strata: one, the groups of --group_col. With --strata S:
+//   group_col overall (adjusted for S, with the group_col x S interaction), group_col within each level of S,
+//   and S within each group. Outputs of all but the first get a file-name prefix.
+def safeId(x) {
+    return x.toString().replaceAll(/[^A-Za-z0-9._-]/, '_')
+}
+
+def makeComparisons(samples) {
+    def g = params.group_col
+    def ref = params.maaslin_reference ?: 'NA'
+    if (!params.strata) {
+        return [[id: 'main', label: '', group: g, subset_col: 'NA', subset_value: 'NA', covariates: 'NA',
+                 interaction: 'false', prefix: '', reference: ref, publish: '']]
+    }
+    def s = params.strata
+    def glev = samples.collect { x -> x[0].group }.unique().sort()
+    def slev = samples.collect { x -> x[0].strata }.unique().sort()
+    def out = [[id: safeId(g), label: "${g}, all samples (adjusted for ${s})".toString(), group: g, subset_col: 'NA',
+                subset_value: 'NA', covariates: s, interaction: 'true', prefix: '', reference: ref,
+                publish: "comparisons/${safeId(g)}".toString()]]
+    slev.each { v ->
+        def id = "${safeId(g)}_within_${safeId(s)}-${safeId(v)}".toString()
+        out << [id: id, label: "${g} within ${s} = ${v}".toString(), group: g, subset_col: s, subset_value: v,
+                covariates: 'NA', interaction: 'false', prefix: "${id}__".toString(), reference: ref, publish: "comparisons/${id}".toString()]
+    }
+    glev.each { v ->
+        def id = "${safeId(s)}_within_${safeId(g)}-${safeId(v)}".toString()
+        out << [id: id, label: "${s} within ${g} = ${v}".toString(), group: s, subset_col: g, subset_value: v,
+                covariates: 'NA', interaction: 'false', prefix: "${id}__".toString(), reference: 'NA', publish: "comparisons/${id}".toString()]
+    }
+    return out
+}
+
+// comparisons as a table for the final report
+def comparisonsTable(comps) {
+    def keys = ['id', 'label', 'group', 'subset_col', 'subset_value', 'covariates', 'interaction', 'prefix', 'publish']
+    def lines = [keys.join('\t')]
+    comps.each { c -> lines << keys.collect { k -> c[k].toString() }.join('\t') }
+    def f = file("${workflow.workDir}/comparisons.tsv")
+    f.parent.mkdirs()
+    f.text = lines.join('\n') + '\n'
+    return f
+}
+
 def toManifest(ch) {
     return ch
         .toSortedList { a, b -> a[0].id <=> b[0].id }
@@ -208,16 +266,21 @@ workflow {
 
         // statistics and figures
         COMPOSITION(PHYLOSEQ_BUILD.out.ps)
-        ALPHA_DIVERSITY(PHYLOSEQ_BUILD.out.ps_rare)
-        BETA_DIVERSITY(PHYLOSEQ_BUILD.out.ps_rare)
-        MAASLIN3(PHYLOSEQ_BUILD.out.ps)
+        def comps = makeComparisons(sheet[0])
+        ch_comp = channel.fromList(comps)
+        ALPHA_DIVERSITY(ch_comp.combine(PHYLOSEQ_BUILD.out.ps_rare))
+        BETA_DIVERSITY(ch_comp.combine(PHYLOSEQ_BUILD.out.ps_rare))
+        MAASLIN3(ch_comp.combine(PHYLOSEQ_BUILD.out.ps))
 
         // QC summary report
         ch_mqc = FASTQC_RAW.out.zip.map { _meta, z -> z }.flatten()
             .mix(FASTQC_FILTERED.out.zip.map { _meta, z -> z }.flatten())
             .mix(PRIMER_DETECT.out.mqc.flatten(), DADA2.out.mqc.flatten(), PHYLOSEQ_BUILD.out.mqc.flatten(),
-                 COMPOSITION.out.mqc.flatten(), ALPHA_DIVERSITY.out.mqc.flatten(), BETA_DIVERSITY.out.mqc.flatten(),
-                 MAASLIN3.out.mqc.flatten())
+                 COMPOSITION.out.mqc.flatten(),
+                 // QC summary: only the main comparison (the others would repeat the same sections)
+                 ALPHA_DIVERSITY.out.mqc.filter { c, _f -> c.prefix == '' }.map { _c, f -> f }.flatten(),
+                 BETA_DIVERSITY.out.mqc.filter { c, _f -> c.prefix == '' }.map { _c, f -> f }.flatten(),
+                 MAASLIN3.out.mqc.filter { c, _f -> c.prefix == '' }.map { _c, f -> f }.flatten())
             .collect()
         MULTIQC(ch_mqc, file("${projectDir}/assets/multiqc_config.yml", checkIfExists: true))
 
@@ -234,7 +297,7 @@ workflow {
                  MULTIQC.out.data.map { d -> d.resolve('multiqc_data.json') })
             .filter { f -> f.name.endsWith('.png') || f.name.endsWith('.tsv') || f.name.endsWith('.csv') || f.name.endsWith('.txt') || f.name.endsWith('.zip') || f.name.endsWith('.json') }
             .collect()
-        FINAL_REPORT(ch_report, ch_sheet)
+        FINAL_REPORT(ch_report, ch_sheet, comparisonsTable(comps))
     }
 
 }
